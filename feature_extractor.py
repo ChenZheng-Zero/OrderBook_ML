@@ -5,11 +5,17 @@ import pandas as pd
 import time
 
 
-def extract_features_from_order_books(limit_order_filename, feature_filename, n_level, delta_t=50, delta_T=1000):
+def extract_features_from_order_books(limit_order_filename, transaction_order_filename, feature_filename,
+                                      n_level, delta_t=50, delta_T=1000):
     if not os.path.isfile(feature_filename):
         basic_set, timestamps, basic_labels = extract_basic_features_by_timestamp(limit_order_filename, n_level)
         time_insensitive_set = extract_time_insensitive_features(basic_set, n_level)
-        save_feature_json(feature_filename, basic_set, timestamps, basic_labels, time_insensitive_set)
+        time_sensitive_set = extract_time_sensitive_features(limit_order_filename,
+                                                             transaction_order_filename,
+                                                             n_level, delta_t, delta_T)
+        time_sensitive_labels = basic_labels[:len(basic_labels) - delta_T]
+        save_feature_json(feature_filename, timestamps, basic_set, basic_labels, time_insensitive_set,
+                          time_sensitive_set, time_sensitive_labels)
     df = pd.read_json(feature_filename, orient="records", lines="True")
     basic_set = df["basic_set"].tolist()
     timestamps = df["timestamps"].tolist()
@@ -58,10 +64,14 @@ def extract_basic_features_by_d(limit_order_filename, n_level):
     return basic_set, timestamps, basic_labels
 
 
-def save_feature_json(feature_filename, basic_set, timestamps, basic_labels, time_insensitive_set):
+def save_feature_json(feature_filename, timestamps, basic_set, basic_labels, time_insensitive_set,
+                      time_sensitive_set, time_sensitive_labels):
     feature_dict = {"timestamps": timestamps, "basic_set": basic_set,
-                    "time_insensitive_set": time_insensitive_set, "labels": basic_labels}
-    df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set", "time_insensitive_set", "labels"])
+                    "time_insensitive_set": time_insensitive_set, "basic_labels": basic_labels,
+                    "time_sensitive_set": time_sensitive_set, "time_sensitive_labels": time_sensitive_labels}
+    df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set",
+                                                  "time_insensitive_set", "basic_labels",
+                                                  "time_sensitive_set", "time_sensitive_labels"])
     df.to_json(path_or_buf=feature_filename, orient="records", lines=True)
 
 
@@ -124,14 +134,6 @@ def get_mid_price_labels(mid_prices):
     return gt
 
 
-def merge_time_insensitive_features(v2, v3, v4, v5):
-    time_insensitive_features = []
-    for i in range(len(v2)):
-        time_insensitive_feature = v2[i] + v3[i] + v4[i] + v5[i]
-        time_insensitive_features.append(time_insensitive_feature)
-    return time_insensitive_features
-
-
 def get_time_insensitive_v2(v1):
     v2 = [[v1_i[0] - v1_i[2], (v1_i[0] + v1_i[2])/2] for v1_i in v1]
     return [var for v2_i in v2 for var in v2_i]
@@ -159,54 +161,76 @@ def get_time_insensitive_v5(v1):
     return [sum(p_ask_p_bid), sum(v_ask_v_bid)]
 
 
-def get_time_sensitive_features(limit_order_filename, transaction_order_filename,
-                                n_level=10, delta_t=50, delta_T=1000):
+def extract_time_sensitive_features(limit_order_filename, transaction_order_filename,
+                                    n_level=10, delta_t=50, delta_T=1000):
+    v6 = get_time_sensitive_v6(limit_order_filename, n_level, delta_t, delta_T)
+
+    limit_ask_density_list, limit_bid_density_list = get_limit_density_list(limit_order_filename, n_level)
+    transaction_ask_density_list, transaction_bid_density_list, \
+    cancelled_ask_density_list, cancelled_bid_density_list = \
+        get_transaction_and_cancelled_density_list(limit_order_filename, transaction_order_filename, n_level)
+    v7 = get_time_sensitive_v7(limit_ask_density_list, limit_bid_density_list,
+                               transaction_ask_density_list, transaction_bid_density_list,
+                               cancelled_ask_density_list, cancelled_bid_density_list,
+                               delta_t, delta_T)
+    v8 = get_time_sensitive_v8(limit_ask_density_list, limit_bid_density_list,
+                               transaction_ask_density_list, transaction_bid_density_list,
+                               cancelled_ask_density_list, cancelled_bid_density_list,
+                               delta_t, delta_T)
+    time_sensitive_features = merge_time_sensitive_features(v6, v7, v8)
+    return time_sensitive_features
+
+
+def get_time_sensitive_v6(limit_order_filename, n_level=10, delta_t=50, delta_T=1000):
     limit_order_df = pd.read_excel(limit_order_filename)
     delimiter_index = get_delimiter_index(limit_order_df)
-    v6 = get_time_sensitive_v6(limit_order_df, delimiter_index, n_level, delta_t)
-    transaction_dict = get_transaction_dict(transaction_order_filename)
-
-
-def get_time_sensitive_v6(limit_order_df, delimiter_index, n_level=10, delta_t=50):
     v6 = []
-    for i in range(len(delimiter_index)):
-        if i + delta_t < len(delimiter_index):
-            tmp_v6 = []
-            for level in range(1, n_level+1):
-                curr_index = delimiter_index[i] + level
-                after_delta_t_index = delimiter_index[i + delta_t] + level
-                tmp_v6.append([limit_order_df["ASK_PRICE"][after_delta_t_index] -
-                               limit_order_df["ASK_PRICE"][curr_index],
-                               limit_order_df["BID_PRICE"][after_delta_t_index] -
-                               limit_order_df["BID_PRICE"][curr_index],
-                               limit_order_df["ASK_SIZE"][after_delta_t_index] -
-                               limit_order_df["ASK_SIZE"][curr_index],
-                               limit_order_df["BID_SIZE"][after_delta_t_index] -
-                               limit_order_df["BID_SIZE"][curr_index]])
-            v6.append([var for v6_i in tmp_v6 for var in v6_i])
+    for i in range(len(delimiter_index) - delta_T):
+        tmp_v6 = []
+        for level in range(1, n_level+1):
+            curr_index = delimiter_index[i] + level
+            after_delta_t_index = delimiter_index[i + delta_t] + level
+            tmp_v6.append([limit_order_df["ASK_PRICE"][after_delta_t_index] -
+                           limit_order_df["ASK_PRICE"][curr_index],
+                           limit_order_df["BID_PRICE"][after_delta_t_index] -
+                           limit_order_df["BID_PRICE"][curr_index],
+                           limit_order_df["ASK_SIZE"][after_delta_t_index] -
+                           limit_order_df["ASK_SIZE"][curr_index],
+                           limit_order_df["BID_SIZE"][after_delta_t_index] -
+                           limit_order_df["BID_SIZE"][curr_index]])
+        v6.append([var for v6_i in tmp_v6 for var in v6_i])
     return v6
 
 
-def get_time_sensitive_v7(limit_order_filename, transaction_order_filename,
-                          delimiter_index, delta_t=50, delta_T=1000):
+def get_time_sensitive_v7(limit_ask_density_list, limit_bid_density_list,
+                          transaction_ask_density_list, transaction_bid_density_list,
+                          cancelled_ask_density_list, cancelled_bid_density_list,
+                          delta_t=50, delta_T=1000):
+    v7 = []
+    for i in range(len(limit_ask_density_list) - delta_T):
+        v7.append([limit_ask_density_list[i + delta_t] - limit_ask_density_list[i],
+                   limit_bid_density_list[i + delta_t] - limit_bid_density_list[i],
+                   transaction_ask_density_list[i + delta_t] - transaction_ask_density_list[i],
+                   transaction_bid_density_list[i + delta_t] - transaction_bid_density_list[i],
+                   cancelled_ask_density_list[i + delta_t] - cancelled_ask_density_list[i],
+                   cancelled_bid_density_list[i + delta_t] - cancelled_bid_density_list[i]])
+    return v7
 
 
-
-
-def get_limit_density(limit_order_filename, n_level=10):
+def get_limit_density_list(limit_order_filename, n_level=10):
     limit_order_df = pd.read_excel(limit_order_filename)
     delimiter_index = get_delimiter_index(limit_order_df)
-    limit_ask_density = []
-    limit_bid_density = []
+    limit_ask_density_list = []
+    limit_bid_density_list = []
     for i in range(len(delimiter_index) - 1):
         limit_ask_density = 0.0
         limit_bid_density = 0.0
         for index in range(delimiter_index[i] + 1, delimiter_index[i] + 1 + n_level):
             limit_ask_density += limit_order_df["ASK_PRICE"][index] * limit_order_df["ASK_SIZE"][index]
             limit_bid_density += limit_order_df["BID_PRICE"][index] * limit_order_df["BID_SIZE"][index]
-        limit_ask_density.append(limit_ask_density)
-        limit_bid_density.append(limit_bid_density)
-    return limit_ask_density, limit_bid_density
+        limit_ask_density_list.append(limit_ask_density)
+        limit_bid_density_list.append(limit_bid_density)
+    return limit_ask_density_list, limit_bid_density_list
 
 
 def get_transaction_and_cancelled_density_list(limit_order_filename, transaction_order_filename, n_level=10):
@@ -283,9 +307,6 @@ def get_transaction_and_cancelled_density(timestamp, disappeared_orders, transac
 
 
 def get_transaction_dict(transaction_order_filename):
-    """
-    Map transaction timestamp to [size, price]
-    """
     transaction_order_df = pd.read_excel(transaction_order_filename)
     transaction_dict = {}
     for index in range(len(transaction_order_df["Index"])):
@@ -298,3 +319,30 @@ def get_transaction_dict(transaction_order_filename):
                 transaction_dict[timestamp] = {"SIZE": [transaction_order_df["SIZE"][index]],
                                                "PRICE": [transaction_order_df["PRICE"][index]]}
     return transaction_dict
+
+
+def get_time_sensitive_v8(limit_ask_density_list, limit_bid_density_list,
+                          transaction_ask_density_list, transaction_bid_density_list,
+                          cancelled_ask_density_list, cancelled_bid_density_list,
+                          delta_t=50, delta_T=1000):
+    v8 = []
+    for i in range(len(limit_ask_density_list) - delta_T):
+        v8.append([compare_delta_T_and_delta_t(limit_ask_density_list, i, delta_t, delta_T),
+                   compare_delta_T_and_delta_t(limit_bid_density_list, i, delta_t, delta_T),
+                   compare_delta_T_and_delta_t(transaction_ask_density_list, i, delta_t, delta_T),
+                   compare_delta_T_and_delta_t(transaction_bid_density_list, i, delta_t, delta_T),
+                   compare_delta_T_and_delta_t(cancelled_ask_density_list, i, delta_t, delta_T),
+                   compare_delta_T_and_delta_t(cancelled_bid_density_list, i, delta_t, delta_T)])
+    return v8
+
+
+def compare_delta_T_and_delta_t(list, i, delta_t=50, delta_T=1000):
+    return list[i + delta_t] > list[i + delta_T]
+
+
+def merge_time_sensitive_features(v6, v7, v8):
+    time_sensitive_features = []
+    for i in range(len(v6)):
+        time_sensitive_feature = v6[i] + v7[i] + v8[i]
+        time_sensitive_features.append(time_sensitive_feature)
+    return time_sensitive_features
