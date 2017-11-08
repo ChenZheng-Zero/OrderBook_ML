@@ -6,22 +6,27 @@ import time
 
 
 def extract_features_from_order_books(limit_order_filename, transaction_order_filename, feature_filename,
-                                      n_level, delta_t=50, delta_T=1000):
+                                      n_level=10, delta_t=50, delta_T=1000):
     if not os.path.isfile(feature_filename):
         basic_set, timestamps, basic_labels = extract_basic_features_by_timestamp(limit_order_filename, n_level)
         time_insensitive_set = extract_time_insensitive_features(basic_set, n_level)
         time_sensitive_set = extract_time_sensitive_features(limit_order_filename,
                                                              transaction_order_filename,
                                                              n_level, delta_t, delta_T)
-        time_sensitive_labels = basic_labels[:len(basic_labels) - delta_T]
-        save_feature_json(feature_filename, timestamps, basic_set, basic_labels, time_insensitive_set,
-                          time_sensitive_set, time_sensitive_labels)
+        timestamps = timestamps[:len(timestamps) - delta_T]
+        basic_set = basic_set[:len(basic_set) - delta_T]
+        time_insensitive_set = time_insensitive_set[:len(time_insensitive_set) - delta_T]
+        labels = basic_labels[:len(basic_labels) - delta_T]
+        save_feature_json(feature_filename, timestamps, basic_set, time_insensitive_set,
+                          time_sensitive_set, labels)
     df = pd.read_json(feature_filename, orient="records", lines="True")
-    basic_set = df["basic_set"].tolist()
     timestamps = df["timestamps"].tolist()
-    basic_labels = df["labels"].tolist()
+    basic_set = df["basic_set"].tolist()
     time_insensitive_set = df["time_insensitive_set"].tolist()
-    return np.array(timestamps), np.array(basic_set), np.array(time_insensitive_set), np.array(basic_labels)
+    time_sensitive_set = df["time_sensitive_set"].tolist()
+    labels = df["labels"].tolist()
+    return np.array(timestamps), np.array(basic_set), np.array(time_insensitive_set), \
+           np.array(time_sensitive_set), np.array(labels)
 
 
 def extract_basic_features_by_timestamp(limit_order_filename, n_level):
@@ -64,14 +69,14 @@ def extract_basic_features_by_d(limit_order_filename, n_level):
     return basic_set, timestamps, basic_labels
 
 
-def save_feature_json(feature_filename, timestamps, basic_set, basic_labels, time_insensitive_set,
-                      time_sensitive_set, time_sensitive_labels):
+def save_feature_json(feature_filename, timestamps, basic_set, time_insensitive_set,
+                      time_sensitive_set, labels):
     feature_dict = {"timestamps": timestamps, "basic_set": basic_set,
-                    "time_insensitive_set": time_insensitive_set, "basic_labels": basic_labels,
-                    "time_sensitive_set": time_sensitive_set, "time_sensitive_labels": time_sensitive_labels}
+                    "time_insensitive_set": time_insensitive_set,
+                    "time_sensitive_set": time_sensitive_set, "labels": labels}
     df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set",
-                                                  "time_insensitive_set", "basic_labels",
-                                                  "time_sensitive_set", "time_sensitive_labels"])
+                                                  "time_insensitive_set", "time_sensitive_set",
+                                                  "labels"])
     df.to_json(path_or_buf=feature_filename, orient="records", lines=True)
 
 
