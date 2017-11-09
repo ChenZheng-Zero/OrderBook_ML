@@ -1,4 +1,5 @@
 from datetime import datetime
+from math import isnan
 import numpy as np
 import os
 import pandas as pd
@@ -8,15 +9,15 @@ import time
 def extract_features_from_order_books(limit_order_filename, transaction_order_filename, feature_filename,
                                       n_level=10, delta_t=50, delta_T=1000):
     if not os.path.isfile(feature_filename):
-        basic_set, timestamps, basic_labels = extract_basic_features_by_timestamp(limit_order_filename, n_level)
+        basic_set, timestamps, basic_labels = extract_basic_features_by_d(limit_order_filename, n_level)
         time_insensitive_set = extract_time_insensitive_features(basic_set, n_level)
         time_sensitive_set = extract_time_sensitive_features(limit_order_filename,
                                                              transaction_order_filename,
                                                              n_level, delta_t, delta_T)
-        timestamps = timestamps[:len(timestamps) - delta_T]
-        basic_set = basic_set[:len(basic_set) - delta_T]
-        time_insensitive_set = time_insensitive_set[:len(time_insensitive_set) - delta_T]
-        labels = basic_labels[:len(basic_labels) - delta_T]
+        timestamps = timestamps[:len(time_sensitive_set)]
+        basic_set = basic_set[:len(time_sensitive_set)]
+        time_insensitive_set = time_insensitive_set[:len(time_sensitive_set)]
+        labels = basic_labels[:len(time_sensitive_set)]
         save_feature_json(feature_filename, timestamps, basic_set, time_insensitive_set,
                           time_sensitive_set, labels)
     df = pd.read_json(feature_filename, orient="records", lines="True")
@@ -26,7 +27,7 @@ def extract_features_from_order_books(limit_order_filename, transaction_order_fi
     time_sensitive_set = df["time_sensitive_set"].tolist()
     labels = df["labels"].tolist()
     return np.array(timestamps), np.array(basic_set), np.array(time_insensitive_set), \
-           np.array(time_sensitive_set), np.array(labels)
+        np.array(time_sensitive_set), np.array(labels)
 
 
 def extract_basic_features_by_timestamp(limit_order_filename, n_level):
@@ -168,16 +169,16 @@ def get_time_insensitive_v5(v1):
 
 def extract_time_sensitive_features(limit_order_filename, transaction_order_filename,
                                     n_level=10, delta_t=50, delta_T=1000):
-    v6 = get_time_sensitive_v6(limit_order_filename, n_level, delta_t, delta_T)
+    v6 = get_time_sensitive_v6(limit_order_filename, n_level, delta_t)
 
     limit_ask_density_list, limit_bid_density_list = get_limit_density_list(limit_order_filename, n_level)
-    transaction_ask_density_list, transaction_bid_density_list, \
-    cancelled_ask_density_list, cancelled_bid_density_list = \
-        get_transaction_and_cancelled_density_list(limit_order_filename, transaction_order_filename, n_level)
+    transaction_ask_density_list, transaction_bid_density_list, cancelled_ask_density_list, \
+        cancelled_bid_density_list \
+        = get_transaction_and_cancelled_density_list(limit_order_filename, transaction_order_filename)
     v7 = get_time_sensitive_v7(limit_ask_density_list, limit_bid_density_list,
                                transaction_ask_density_list, transaction_bid_density_list,
                                cancelled_ask_density_list, cancelled_bid_density_list,
-                               delta_t, delta_T)
+                               delta_t)
     v8 = get_time_sensitive_v8(limit_ask_density_list, limit_bid_density_list,
                                transaction_ask_density_list, transaction_bid_density_list,
                                cancelled_ask_density_list, cancelled_bid_density_list,
@@ -186,11 +187,11 @@ def extract_time_sensitive_features(limit_order_filename, transaction_order_file
     return time_sensitive_features
 
 
-def get_time_sensitive_v6(limit_order_filename, n_level=10, delta_t=50, delta_T=1000):
+def get_time_sensitive_v6(limit_order_filename, n_level=10, delta_t=50):
     limit_order_df = pd.read_excel(limit_order_filename)
     delimiter_index = get_delimiter_index(limit_order_df)
     v6 = []
-    for i in range(len(delimiter_index) - delta_T):
+    for i in range(len(delimiter_index) - 1 - delta_t):
         tmp_v6 = []
         for level in range(1, n_level+1):
             curr_index = delimiter_index[i] + level
@@ -210,9 +211,9 @@ def get_time_sensitive_v6(limit_order_filename, n_level=10, delta_t=50, delta_T=
 def get_time_sensitive_v7(limit_ask_density_list, limit_bid_density_list,
                           transaction_ask_density_list, transaction_bid_density_list,
                           cancelled_ask_density_list, cancelled_bid_density_list,
-                          delta_t=50, delta_T=1000):
+                          delta_t=50):
     v7 = []
-    for i in range(len(limit_ask_density_list) - delta_T):
+    for i in range(len(cancelled_bid_density_list) - delta_t):
         v7.append([limit_ask_density_list[i + delta_t] - limit_ask_density_list[i],
                    limit_bid_density_list[i + delta_t] - limit_bid_density_list[i],
                    transaction_ask_density_list[i + delta_t] - transaction_ask_density_list[i],
@@ -238,7 +239,7 @@ def get_limit_density_list(limit_order_filename, n_level=10):
     return limit_ask_density_list, limit_bid_density_list
 
 
-def get_transaction_and_cancelled_density_list(limit_order_filename, transaction_order_filename, n_level=10):
+def get_transaction_and_cancelled_density_list(limit_order_filename, transaction_order_filename):
     limit_order_df = pd.read_excel(limit_order_filename)
     delimiter_index = get_delimiter_index(limit_order_df)
     transaction_dict = get_transaction_dict(transaction_order_filename)
@@ -253,25 +254,26 @@ def get_transaction_and_cancelled_density_list(limit_order_filename, transaction
         curr_bid_orders = []
         timestamp = limit_order_df["Time"][delimiter_index[i] + 1]
         for index in range(delimiter_index[i] + 1, delimiter_index[i + 1]):
-            curr_ask_orders.append({"ASK_PRICE": limit_order_df["ASK_PRICE"][index],
-                                    "ASK_SIZE": limit_order_df["ASK_SIZE"][index]})
-            curr_bid_orders.append({"BID_PRICE": limit_order_df["BID_PRICE"][index],
-                                    "BID_SIZE": limit_order_df["BID_SIZE"][index]})
+            if not isnan(limit_order_df["ASK_PRICE"][index]):
+                curr_ask_orders.append({"PRICE": limit_order_df["ASK_PRICE"][index],
+                                        "SIZE": limit_order_df["ASK_SIZE"][index]})
+            if not isnan(limit_order_df["BID_PRICE"][index]):
+                curr_bid_orders.append({"PRICE": limit_order_df["BID_PRICE"][index],
+                                        "SIZE": limit_order_df["BID_SIZE"][index]})
         disappeared_ask_orders = get_disappeared_orders(prev_ask_orders, curr_ask_orders)
         transaction_ask_density, cancelled_ask_density = get_transaction_and_cancelled_density(timestamp,
-                                                                disappeared_ask_orders, transaction_dict)
+                                                            disappeared_ask_orders, transaction_dict)
         transaction_ask_density_list.append(transaction_ask_density)
         cancelled_ask_density_list.append(cancelled_ask_density)
         disappeared_bid_orders = get_disappeared_orders(prev_bid_orders, curr_bid_orders)
         transaction_bid_density, cancelled_bid_density = get_transaction_and_cancelled_density(timestamp,
-                                                                disappeared_bid_orders, transaction_dict)
+                                                            disappeared_bid_orders, transaction_dict)
         transaction_bid_density_list.append(transaction_bid_density)
         cancelled_bid_density_list.append(cancelled_bid_density)
-
         prev_ask_orders = curr_ask_orders
         prev_bid_orders = curr_bid_orders
     return transaction_ask_density_list, transaction_bid_density_list, cancelled_ask_density_list, \
-           cancelled_bid_density_list
+        cancelled_bid_density_list
 
 
 def get_disappeared_orders(prev_orders, curr_orders):
@@ -300,8 +302,8 @@ def get_transaction_and_cancelled_density(timestamp, disappeared_orders, transac
             is_transaction = False
             for j in range(len(transaction_dict[timestamp]["PRICE"])):
                 if disappeared_orders["PRICE"][i] == transaction_dict[timestamp]["PRICE"][j]:
-                    transaction_density += (transaction_dict[timestamp]["PRICE"][j] * \
-                                             transaction_dict[timestamp]["SIZE"][j])
+                    transaction_density += (transaction_dict[timestamp]["PRICE"][j] *
+                                            transaction_dict[timestamp]["SIZE"][j])
                     is_transaction = True
                     break
             if not is_transaction:
@@ -331,7 +333,7 @@ def get_time_sensitive_v8(limit_ask_density_list, limit_bid_density_list,
                           cancelled_ask_density_list, cancelled_bid_density_list,
                           delta_t=50, delta_T=1000):
     v8 = []
-    for i in range(len(limit_ask_density_list) - delta_T):
+    for i in range(len(cancelled_ask_density_list) - delta_T):
         v8.append([compare_delta_T_and_delta_t(limit_ask_density_list, i, delta_t, delta_T),
                    compare_delta_T_and_delta_t(limit_bid_density_list, i, delta_t, delta_T),
                    compare_delta_T_and_delta_t(transaction_ask_density_list, i, delta_t, delta_T),
@@ -342,12 +344,14 @@ def get_time_sensitive_v8(limit_ask_density_list, limit_bid_density_list,
 
 
 def compare_delta_T_and_delta_t(list, i, delta_t=50, delta_T=1000):
-    return list[i + delta_t] > list[i + delta_T]
+    return int(list[i + delta_t] > list[i + delta_T])
 
 
 def merge_time_sensitive_features(v6, v7, v8):
     time_sensitive_features = []
-    for i in range(len(v6)):
-        time_sensitive_feature = v6[i] + v7[i] + v8[i]
+    for i in range(len(v8)):
+        time_sensitive_feature = v6[i]
+        time_sensitive_feature.extend(v7[i])
+        time_sensitive_feature.extend(v8[i])
         time_sensitive_features.append(time_sensitive_feature)
     return time_sensitive_features
