@@ -146,7 +146,7 @@ def get_time_insensitive_v2(v1):
 
 
 def get_time_insensitive_v3(v1):
-    v3 = [[v1[-1][0] - v1[-1][0], v1[0][2] - v1[-1][2],
+    v3 = [[v1[-1][0] - v1[0][0], v1[0][2] - v1[-1][2],
            abs(v1[i][0] - v1[i - 1][0]), abs(v1[i][2] - v1[i - 1][2])]
           for i in range(len(v1)) if i > 0]
     return [var for v3_i in v3 for var in v3_i]
@@ -337,9 +337,7 @@ def get_time_sensitive_v8(limit_ask_density_list, limit_bid_density_list,
         v8.append([compare_delta_T_and_delta_t(limit_ask_density_list, i, delta_t, delta_T),
                    compare_delta_T_and_delta_t(limit_bid_density_list, i, delta_t, delta_T),
                    compare_delta_T_and_delta_t(transaction_ask_density_list, i, delta_t, delta_T),
-                   compare_delta_T_and_delta_t(transaction_bid_density_list, i, delta_t, delta_T),
-                   compare_delta_T_and_delta_t(cancelled_ask_density_list, i, delta_t, delta_T),
-                   compare_delta_T_and_delta_t(cancelled_bid_density_list, i, delta_t, delta_T)])
+                   compare_delta_T_and_delta_t(transaction_bid_density_list, i, delta_t, delta_T)])
     return v8
 
 
