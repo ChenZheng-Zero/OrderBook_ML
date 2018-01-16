@@ -7,9 +7,11 @@ import time
 
 
 def extract_features_from_order_books(limit_order_filename, transaction_order_filename, feature_filename,
-                                      n_level=10, delta_t=50, delta_T=1000):
+                                      time_interval=100, n_level=10, delta_t=50, delta_T=1000):
     if not os.path.isfile(feature_filename):
-        basic_set, timestamps, basic_labels = extract_basic_features_by_d(limit_order_filename, n_level)
+        basic_set, timestamps, basic_labels = extract_basic_features_by_timestamp(limit_order_filename,
+                                                                                  time_interval,
+                                                                                  n_level)
         time_insensitive_set = extract_time_insensitive_features(basic_set, n_level)
         time_sensitive_set = extract_time_sensitive_features(limit_order_filename,
                                                              transaction_order_filename,
@@ -30,10 +32,10 @@ def extract_features_from_order_books(limit_order_filename, transaction_order_fi
         np.array(time_sensitive_set), np.array(labels)
 
 
-def extract_basic_features_by_timestamp(limit_order_filename, n_level):
+def extract_basic_features_by_timestamp(limit_order_filename, time_interval, n_level):
     limit_order_df = pd.read_excel(limit_order_filename)
-    current_timestamp = ""
-    timestamps = []
+    current_timestamp = change_time_form(limit_order_df["Time"][0])
+    timestamps = [current_timestamp]
     mid_prices = []
     basic_set = []
     tmp_v1 = []
