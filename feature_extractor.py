@@ -45,16 +45,45 @@ def extract_features(limit_order_filename, transaction_order_filename,
         np.array(time_sensitive_set), np.array(labels)
 
 
-def save_feature_json(feature_filename, timestamps, basic_set, time_insensitive_set,
-                      time_sensitive_set, labels):
-    """Save the json."""
-    feature_dict = {"timestamps": timestamps, "basic_set": basic_set,
-                    "time_insensitive_set": time_insensitive_set,
-                    "time_sensitive_set": time_sensitive_set, "labels": labels}
-    df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set",
-                                                  "time_insensitive_set", "time_sensitive_set",
-                                                  "labels"])
-    df.to_json(path_or_buf=feature_filename, orient="records", lines=True)
+def extract_unit_time_set(limit_order_df, time_interval_start_indices,
+                          duplicate_timestamps, n_level):
+    """Extract unit time features from the limit order book."""
+    assert(len(time_interval_start_indices) > 0)
+    unit_timestamps = []
+    unit_time_features = []
+    unit_mid_prices = []
+    for i in time_interval_start_indices:
+        unit_timestamps.append(duplicate_timestamps[i])
+        unit_time_feature = []
+        for index in range(i, i + n_level):
+            unit_time_feature.append([limit_order_df["ASK_PRICE"][index],
+                                      limit_order_df["ASK_SIZE"][index],
+                                      limit_order_df["BID_PRICE"][index],
+                                      limit_order_df["BID_SIZE"][index]])
+        unit_mid_prices.append((unit_time_feature[0][0] + unit_time_feature[0][2])/2)
+        unit_time_features.append(np.array(unit_time_feature).reshape(1, 40).tolist()[0])
+    return unit_time_features, unit_timestamps, unit_mid_prices
+
+
+def extract_basic_set(unit_time_features, unit_timestamps, unit_mid_prices, time_interval):
+    """Extract basic set from unit_time_features according to the given time_interval."""
+    stop = time_interval/min_time_interval
+    basic_labels = get_mid_price_labels(unit_mid_prices[::stop])
+    return unit_time_features[::stop], unit_timestamps[::stop], basic_labels
+
+
+def extract_time_insensitive_features(basic_set, n_level):
+    """Extract time insensitive features."""
+    time_insensitive_set = []
+    for v1 in basic_set:
+        v1 = np.array(v1).reshape(n_level, -1)
+        v2 = get_time_insensitive_v2(v1)
+        v3 = get_time_insensitive_v3(v1)
+        v4 = get_time_insensitive_v4(v1)
+        v5 = get_time_insensitive_v5(v1)
+        time_insensitive_feature = v2 + v3 + v4 + v5
+        time_insensitive_set.append(time_insensitive_feature)
+    return time_insensitive_set
 
 
 def extract_time_sensitive_set(limit_order_df, transaction_order_filename,
@@ -67,7 +96,7 @@ def extract_time_sensitive_set(limit_order_df, transaction_order_filename,
                                                                             time_interval_start_indices,
                                                                             n_level)
     transaction_ask_density_list, transaction_bid_density_list, \
-        cancelled_ask_density_list, cancelled_bid_density_list \
+    cancelled_ask_density_list, cancelled_bid_density_list \
         = get_transaction_and_cancelled_density_list(limit_order_df,
                                                      transaction_order_filename)
     stop = time_interval / min_time_interval
@@ -90,6 +119,71 @@ def extract_time_sensitive_set(limit_order_df, transaction_order_filename,
     return time_sensitive_features
 
 
+def get_time_interval_start_indices(duplicate_timestamps, guaranteed_index):
+    """Get indices of all start states in every time interval."""
+    next_time = min_time_interval
+    time_interval_start_indices = []
+    for i in range(len(duplicate_timestamps)):
+        if duplicate_timestamps[i] >= next_time and i >= guaranteed_index:
+            time_interval_start_indices.append(i)
+            next_time += min_time_interval
+    return time_interval_start_indices
+
+
+def get_mid_price_labels(mid_prices):
+    """Get the labels"""
+    gt = [0]  # let the start label be 0
+    if len(mid_prices) == 1:
+        return gt
+    for i in range(1, len(mid_prices)):
+        if mid_prices[i] - mid_prices[i - 1] > 0:
+            gt.append(1)
+        else:
+            gt.append(0)
+    return gt
+
+
+def get_time_insensitive_v2(v1):
+    """Get v2 from v1."""
+    v2 = [[v1_i[0] - v1_i[2], (v1_i[0] + v1_i[2])/2] for v1_i in v1]
+    return [var for v2_i in v2 for var in v2_i]
+
+
+def get_time_insensitive_v3(v1):
+    """Get v3 from v1."""
+    v3 = [[v1[-1][0] - v1[0][0], v1[0][2] - v1[-1][2],
+           abs(v1[i][0] - v1[i - 1][0]), abs(v1[i][2] - v1[i - 1][2])]
+          for i in range(len(v1)) if i > 0]
+    return [var for v3_i in v3 for var in v3_i]
+
+
+def get_time_insensitive_v4(v1):
+    """Get v4 from v1."""
+    p_ask = [v1_i[0] for v1_i in v1]
+    v_ask = [v1_i[1] for v1_i in v1]
+    p_bid = [v1_i[2] for v1_i in v1]
+    v_bid = [v1_i[3] for v1_i in v1]
+    return [sum(p_ask)/len(p_ask), sum(p_bid)/len(p_bid),
+            sum(v_ask)/len(v_ask), sum(v_bid)/len(v_bid)]
+
+
+def get_time_insensitive_v5(v1):
+    """Get v5 from v1."""
+    p_ask_p_bid = [v1_i[0] - v1_i[2] for v1_i in v1]
+    v_ask_v_bid = [v1_i[1] - v1_i[3] for v1_i in v1]
+    return [sum(p_ask_p_bid), sum(v_ask_v_bid)]
+
+
+def get_time_sensitive_v6(unit_time_features, delta_t=50):
+    """Get v6 from unit time features."""
+    v6 = []
+    for i in range(len(unit_time_features) - delta_t):
+        derivative = np.array(unit_time_features[i + delta_t]) - \
+                     np.array(unit_time_features[i])
+        v6.append(derivative.tolist())
+    return v6
+
+
 def get_time_sensitive_v7(limit_ask_density_list, limit_bid_density_list,
                           transaction_ask_density_list, transaction_bid_density_list,
                           cancelled_ask_density_list, cancelled_bid_density_list,
@@ -104,6 +198,34 @@ def get_time_sensitive_v7(limit_ask_density_list, limit_bid_density_list,
                    cancelled_ask_density_list[i + delta_t] - cancelled_ask_density_list[i],
                    cancelled_bid_density_list[i + delta_t] - cancelled_bid_density_list[i]])
     return v7
+
+
+def get_time_sensitive_v8(limit_ask_density_list, limit_bid_density_list,
+                          transaction_ask_density_list, transaction_bid_density_list,
+                          delta_t=50, delta_T=1000):
+    """Get v8."""
+    v8 = []
+    for i in range(len(transaction_ask_density_list) - delta_T):
+        v8.append([compare_delta_T_and_delta_t(limit_ask_density_list, i, delta_t, delta_T),
+                   compare_delta_T_and_delta_t(limit_bid_density_list, i, delta_t, delta_T),
+                   compare_delta_T_and_delta_t(transaction_ask_density_list, i, delta_t, delta_T),
+                   compare_delta_T_and_delta_t(transaction_bid_density_list, i, delta_t, delta_T)])
+    return v8
+
+
+def get_limit_density_list(limit_order_df, time_interval_start_indices, n_level=10):
+    """Get bid/ask density."""
+    limit_ask_density_list = []
+    limit_bid_density_list = []
+    for i in range(len(time_interval_start_indices)):
+        limit_ask_density = 0.0
+        limit_bid_density = 0.0
+        for index in range(time_interval_start_indices[i], time_interval_start_indices[i] + n_level):
+            limit_ask_density += limit_order_df["ASK_PRICE"][index] * limit_order_df["ASK_SIZE"][index]
+            limit_bid_density += limit_order_df["BID_PRICE"][index] * limit_order_df["BID_SIZE"][index]
+        limit_ask_density_list.append(limit_ask_density)
+        limit_bid_density_list.append(limit_bid_density)
+    return limit_ask_density_list, limit_bid_density_list
 
 
 def get_transaction_and_cancelled_density_list(limit_order_df,
@@ -201,86 +323,6 @@ def get_transaction_dict(transaction_order_filename):
     return transaction_dict
 
 
-def get_limit_density_list(limit_order_df, time_interval_start_indices, n_level=10):
-    """Get bid/ask density."""
-    limit_ask_density_list = []
-    limit_bid_density_list = []
-    for i in range(len(time_interval_start_indices)):
-        limit_ask_density = 0.0
-        limit_bid_density = 0.0
-        for index in range(time_interval_start_indices[i], time_interval_start_indices[i] + n_level):
-            limit_ask_density += limit_order_df["ASK_PRICE"][index] * limit_order_df["ASK_SIZE"][index]
-            limit_bid_density += limit_order_df["BID_PRICE"][index] * limit_order_df["BID_SIZE"][index]
-        limit_ask_density_list.append(limit_ask_density)
-        limit_bid_density_list.append(limit_bid_density)
-    return limit_ask_density_list, limit_bid_density_list
-
-
-def extract_basic_set(unit_time_features, unit_timestamps, unit_mid_prices, time_interval):
-    """Extract basic set from unit_time_features according to the given time_interval."""
-    stop = time_interval/min_time_interval
-    basic_labels = get_mid_price_labels(unit_mid_prices[::stop])
-    return unit_time_features[::stop], unit_timestamps[::stop], basic_labels
-
-
-def get_mid_price_labels(mid_prices):
-    """Get the labels"""
-    gt = [0]  # let the start label be 0
-    if len(mid_prices) == 1:
-        return gt
-    for i in range(1, len(mid_prices)):
-        if mid_prices[i] - mid_prices[i - 1] > 0:
-            gt.append(1)
-        else:
-            gt.append(0)
-    return gt
-
-
-def extract_time_insensitive_features(basic_set, n_level):
-    """Extract time insensitive features."""
-    time_insensitive_set = []
-    for v1 in basic_set:
-        v1 = np.array(v1).reshape(n_level, -1)
-        v2 = get_time_insensitive_v2(v1)
-        v3 = get_time_insensitive_v3(v1)
-        v4 = get_time_insensitive_v4(v1)
-        v5 = get_time_insensitive_v5(v1)
-        time_insensitive_feature = v2 + v3 + v4 + v5
-        time_insensitive_set.append(time_insensitive_feature)
-    return time_insensitive_set
-
-
-def extract_unit_time_set(limit_order_df, time_interval_start_indices,
-                          duplicate_timestamps, n_level):
-    """Extract unit time features from the limit order book."""
-    assert(len(time_interval_start_indices) > 0)
-    unit_timestamps = []
-    unit_time_features = []
-    unit_mid_prices = []
-    for i in time_interval_start_indices:
-        unit_timestamps.append(duplicate_timestamps[i])
-        unit_time_feature = []
-        for index in range(i, i + n_level):
-            unit_time_feature.append([limit_order_df["ASK_PRICE"][index],
-                                      limit_order_df["ASK_SIZE"][index],
-                                      limit_order_df["BID_PRICE"][index],
-                                      limit_order_df["BID_SIZE"][index]])
-        unit_mid_prices.append((unit_time_feature[0][0] + unit_time_feature[0][2])/2)
-        unit_time_features.append(np.array(unit_time_feature).reshape(1, 40).tolist()[0])
-    return unit_time_features, unit_timestamps, unit_mid_prices
-
-
-def get_time_interval_start_indices(duplicate_timestamps, guaranteed_index):
-    """Get indices of all start states in every time interval."""
-    next_time = min_time_interval
-    time_interval_start_indices = []
-    for i in range(len(duplicate_timestamps)):
-        if duplicate_timestamps[i] >= next_time and i >= guaranteed_index:
-            time_interval_start_indices.append(i)
-            next_time += min_time_interval
-    return time_interval_start_indices
-
-
 def time_to_int(timestamp):
     """Change time stamp to integer in ms."""
     date = datetime.strptime(str(timestamp), '%Y/%m/%d %H:%M:%S.%f')
@@ -294,7 +336,7 @@ def get_delimiter_indices(limit_order_df):
     for i in range(len(limit_order_df["DELIMITER"])):
         if limit_order_df["DELIMITER"][i] == "D":
             delimiter_indices.append(i)
-    return delimiter_indices
+    return delimiter_indices[:len(delimiter_indices) - 1]
 
 
 def get_all_timestamps_in_int(limit_order_df):
@@ -303,6 +345,21 @@ def get_all_timestamps_in_int(limit_order_df):
     for i in range(len(limit_order_df["Time"])):
         duplicate_timestamps.append(time_to_int(limit_order_df["Time"][i]))
     return duplicate_timestamps
+
+
+def compare_delta_T_and_delta_t(list, i, delta_t=50, delta_T=1000):
+    """compare delta_T and delta_t."""
+    return int(list[i + delta_t] > list[i + delta_T])
+
+
+def merge_time_sensitive_features(v6, v7, v8):
+    time_sensitive_features = []
+    for i in range(len(v8)):
+        time_sensitive_feature = v6[i]
+        time_sensitive_feature.extend(v7[i])
+        time_sensitive_feature.extend(v8[i])
+        time_sensitive_features.append(time_sensitive_feature)
+    return time_sensitive_features
 
 
 def check_n_level(limit_order_df, delimiter_indices, n_level=10):
@@ -322,70 +379,13 @@ def check_n_level(limit_order_df, delimiter_indices, n_level=10):
     return guaranteed_index
 
 
-def get_time_insensitive_v2(v1):
-    """Get v2 from v1."""
-    v2 = [[v1_i[0] - v1_i[2], (v1_i[0] + v1_i[2])/2] for v1_i in v1]
-    return [var for v2_i in v2 for var in v2_i]
-
-
-def get_time_insensitive_v3(v1):
-    """Get v3 from v1."""
-    v3 = [[v1[-1][0] - v1[0][0], v1[0][2] - v1[-1][2],
-           abs(v1[i][0] - v1[i - 1][0]), abs(v1[i][2] - v1[i - 1][2])]
-          for i in range(len(v1)) if i > 0]
-    return [var for v3_i in v3 for var in v3_i]
-
-
-def get_time_insensitive_v4(v1):
-    """Get v4 from v1."""
-    p_ask = [v1_i[0] for v1_i in v1]
-    v_ask = [v1_i[1] for v1_i in v1]
-    p_bid = [v1_i[2] for v1_i in v1]
-    v_bid = [v1_i[3] for v1_i in v1]
-    return [sum(p_ask)/len(p_ask), sum(p_bid)/len(p_bid),
-            sum(v_ask)/len(v_ask), sum(v_bid)/len(v_bid)]
-
-
-def get_time_insensitive_v5(v1):
-    """Get v5 from v1."""
-    p_ask_p_bid = [v1_i[0] - v1_i[2] for v1_i in v1]
-    v_ask_v_bid = [v1_i[1] - v1_i[3] for v1_i in v1]
-    return [sum(p_ask_p_bid), sum(v_ask_v_bid)]
-
-
-def get_time_sensitive_v6(unit_time_features, delta_t=50):
-    """Get v6 from unit time features."""
-    v6 = []
-    for i in range(len(unit_time_features) - delta_t):
-        derivative = np.array(unit_time_features[i + delta_t]) - \
-                     np.array(unit_time_features[i])
-        v6.append(derivative.tolist())
-    return v6
-
-
-def get_time_sensitive_v8(limit_ask_density_list, limit_bid_density_list,
-                          transaction_ask_density_list, transaction_bid_density_list,
-                          delta_t=50, delta_T=1000):
-    """Get v8."""
-    v8 = []
-    for i in range(len(transaction_ask_density_list) - delta_T):
-        v8.append([compare_delta_T_and_delta_t(limit_ask_density_list, i, delta_t, delta_T),
-                   compare_delta_T_and_delta_t(limit_bid_density_list, i, delta_t, delta_T),
-                   compare_delta_T_and_delta_t(transaction_ask_density_list, i, delta_t, delta_T),
-                   compare_delta_T_and_delta_t(transaction_bid_density_list, i, delta_t, delta_T)])
-    return v8
-
-
-def compare_delta_T_and_delta_t(list, i, delta_t=50, delta_T=1000):
-    """compare delta_T and delta_t."""
-    return int(list[i + delta_t] > list[i + delta_T])
-
-
-def merge_time_sensitive_features(v6, v7, v8):
-    time_sensitive_features = []
-    for i in range(len(v8)):
-        time_sensitive_feature = v6[i]
-        time_sensitive_feature.extend(v7[i])
-        time_sensitive_feature.extend(v8[i])
-        time_sensitive_features.append(time_sensitive_feature)
-    return time_sensitive_features
+def save_feature_json(feature_filename, timestamps, basic_set, time_insensitive_set,
+                      time_sensitive_set, labels):
+    """Save the json."""
+    feature_dict = {"timestamps": timestamps, "basic_set": basic_set,
+                    "time_insensitive_set": time_insensitive_set,
+                    "time_sensitive_set": time_sensitive_set, "labels": labels}
+    df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set",
+                                                  "time_insensitive_set", "time_sensitive_set",
+                                                  "labels"])
+    df.to_json(path_or_buf=feature_filename, orient="records", lines=True)
