@@ -6,7 +6,7 @@ import svm_trainer
 
 if __name__ == '__main__':
     timestamps, basic_set, time_insensitive_set, time_sensitive_set, labels = \
-        feature_extractor.extract_features_from_order_books(
+        feature_extractor.extract_features(
             limit_order_filename="../../data/input/PN_OB_Snapshot_Aug10.xlsx",
             transaction_order_filename="../../data/input/PN_TRD_0810.xls",
             feature_filename="../../data/output/features_10.json",
