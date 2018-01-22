@@ -16,6 +16,7 @@ def extract_features(limit_order_filename, transaction_order_filename,
         duplicate_timestamps = get_all_timestamps_in_int(limit_order_df)
         time_interval_start_indices = get_time_interval_start_indices(duplicate_timestamps,
                                                                       delimiter_indices,
+                                                                      limit_order_df["Time"].tolist(),
                                                                       time_interval,
                                                                       guaranteed_index)
         timestamps_str_list = limit_order_df["Time"][time_interval_start_indices].tolist()
@@ -34,7 +35,7 @@ def extract_features(limit_order_filename, transaction_order_filename,
         labels = labels[delta_T:]
         print("timestamps len:", len(timestamps_str_list))
         print("basic_set len: ", len(basic_set))
-        print("time_insensitive_set len", len(time_insensitive_set))
+        print("time_insensitive_set len: ", len(time_insensitive_set))
         print("time_sensitive_set len", len(time_sensitive_set))
         print("labels: ", len(labels))
         save_feature_json(feature_filename, timestamps_str_list, basic_set, time_insensitive_set,
@@ -117,7 +118,7 @@ def extract_time_sensitive_set(limit_order_df, transaction_order_filename,
     return time_sensitive_features
 
 
-def get_time_interval_start_indices(duplicate_timestamps, delimiter_indices,
+def get_time_interval_start_indices(duplicate_timestamps, delimiter_indices, timestamp_str_list,
                                     time_interval, guaranteed_index):
     """Get indices of all start states in every time interval."""
     next_time = duplicate_timestamps[guaranteed_index]
@@ -125,7 +126,7 @@ def get_time_interval_start_indices(duplicate_timestamps, delimiter_indices,
     for i in range(guaranteed_index, delimiter_indices[-1]):
         if duplicate_timestamps[i] >= next_time:
             time_interval_start_indices.append(i)
-            next_time += time_interval
+            next_time = int(duplicate_timestamps[i] / time_interval) * time_interval + time_interval
     return time_interval_start_indices
 
 
