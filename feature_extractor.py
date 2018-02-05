@@ -3,6 +3,7 @@ from utils import time_to_int
 import numpy as np
 import os
 import pandas as pd
+import pdb
 
 
 class FeatureExtractor:
@@ -21,13 +22,15 @@ class FeatureExtractor:
         """Extract features from limit order book."""
         if not os.path.isfile(self.feature_filename):
             self.limit_order_df = pd.read_excel(self.limit_order_filename)
-            self.delimiter_indices = self.get_delimiter_indices()
-            self.time_interval_indices = self.get_time_interval_indices()
+            # index starting from the valid level
+            self.delimiter_indices = self.get_delimiter_indices() 
+            # index at the end of every interval
+            self.time_interval_indices = (np.array(self.get_time_interval_indices()) - 1).tolist() 
             basic_set, timestamps, mid_prices = self.extract_basic_set()
             time_insensitive_set = self.extract_time_insensitive_set(basic_set)
             labels = self.get_mid_price_labels(mid_prices)
             self.save_feature_json(self.feature_filename, timestamps, basic_set,
-                                   time_insensitive_set, labels)
+                                   time_insensitive_set, labels, mid_prices)
         df = pd.read_json(self.feature_filename, orient="records", lines="True")
         timestamps = df["timestamps"].tolist()
         basic_set = df["basic_set"].tolist()
@@ -39,20 +42,34 @@ class FeatureExtractor:
     def extract_basic_set(self):
         """Extract basic set."""
         limit_book_indices = np.array(self.delimiter_indices)[self.time_interval_indices].tolist()
+        print("Start index in limit order: {}".format(limit_book_indices[0]))
         assert(len(limit_book_indices) > 0)
         timestamps = []
         basic_set = []
         mid_prices = []
+        init_time = time_to_int(self.limit_order_df["Time"][limit_book_indices[0]]) \
+            if time_to_int(self.limit_order_df["Time"][limit_book_indices[0]]) % self.time_interval != 0 \
+            else self.time_interval * ((time_to_int(self.limit_order_df["Time"][limit_book_indices[0]]) / self.time_interval) + 1)
+        init_index = self.time_interval_indices[0]
         for i in limit_book_indices:
-            timestamps.append(time_to_int(self.limit_order_df["Time"][i]))
+            timestamps.append(init_time)
+            init_time = init_time + self.time_interval
             v1 = []
             for index in range(i + 1, i + 1 + self.n_level):
                 v1.append([self.limit_order_df["ASK_PRICE"][index],
                            self.limit_order_df["ASK_SIZE"][index],
                            self.limit_order_df["BID_PRICE"][index],
                            self.limit_order_df["BID_SIZE"][index]])
-            mid_prices.append((v1[0][0] + v1[0][2])/2)
-            basic_set.append(np.array(v1).reshape(1, 40).tolist()[0])
+
+            # append the max mid-price in the interval
+            max_mid_price = 0
+            while np.array(self.delimiter_indices)[init_index] <= i:
+                max_mid_price = max(max_mid_price, (self.limit_order_df["ASK_PRICE"][np.array(self.delimiter_indices)[init_index]+1]\
+                    + self.limit_order_df["BID_PRICE"][np.array(self.delimiter_indices)[init_index]+1])/2)
+                init_index = init_index + 1
+            mid_prices.append(max_mid_price)
+
+            basic_set.append(np.array(v1).reshape(1, -1).tolist()[0])
         return basic_set, timestamps, mid_prices
 
     def extract_time_insensitive_set(self, basic_set):
@@ -113,17 +130,18 @@ class FeatureExtractor:
         """Find the first timestamp in int."""
         assert(len(self.delimiter_indices) > 0)
         guaranteed_index = self.delimiter_indices[0]
-        guaranteed_timestamp = time_to_int(self.limit_order_df["Time"][guaranteed_index])
-        start_timestamp = 0
-        while start_timestamp < guaranteed_timestamp:
-            start_timestamp += self.time_interval
+        guaranteed_timestamp = time_to_int(self.limit_order_df["Time"].iloc[guaranteed_index])
+        if guaranteed_timestamp % self.time_interval == 0:
+            start_timestamp = guaranteed_timestamp
+        else:
+            start_timestamp = self.time_interval * ((guaranteed_timestamp / self.time_interval) + 1)
         return start_timestamp
 
     def get_time_interval_index(self, timestamp, current_index):
         """Find the first state for the desired timestamp."""
         for i in range(current_index, len(self.delimiter_indices)):
             index = self.delimiter_indices[i]
-            current_timestamp = time_to_int(self.limit_order_df["Time"][index])
+            current_timestamp = time_to_int(self.limit_order_df["Time"].iloc[index])
             if current_timestamp == timestamp:
                 return i
             elif current_timestamp > timestamp:
@@ -176,14 +194,14 @@ class FeatureExtractor:
 
     @staticmethod
     def save_feature_json(feature_filename, timestamps, basic_set,
-                          time_insensitive_set, labels):
+                          time_insensitive_set, labels, mid_prices):
         """Save the json."""
         feature_dict = {"timestamps": timestamps, "basic_set": basic_set,
                         "time_insensitive_set": time_insensitive_set,
-                        "labels": labels}
+                        "labels": labels, "mid_pices": mid_prices}
         df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set",
                                                       "time_insensitive_set",
-                                                      "labels"])
+                                                      "labels", "mid_prices"])
         df.to_json(path_or_buf=feature_filename, orient="records", lines=True)
 
 
