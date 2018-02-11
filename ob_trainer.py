@@ -1,4 +1,5 @@
 from pre_processor import get_samples_index
+from pre_processor import feature_selection
 import feature_extractor
 import numpy as np
 import svm_trainer
@@ -33,13 +34,11 @@ def train_all_days(input_folder, output_folder, n_level=10):
     features = np.concatenate((basic_set, time_insensitive_set), axis=1)
     selected_data = features[sampling_index]
     selected_labels = labels[sampling_index]
-    svm_trainer.train_svm(data=selected_data, labels=selected_labels, c=1.0, kernel='rbf')
+    svm_trainer.train_svm(data=selected_data, labels=selected_labels, c=1.0, kernel='rbf', g=0.01)
 
 
 def train_one_day(limit_order_filename, feature_filename, num_per_label,
                   n_level=10, time_interval=100):
-    # limit_order_filename = "../../data/input/PN_OB_Snapshot_Aug10.xlsx"
-    # feature_filename = "../../data/output/features_" + str(n_level) + ".json"
     timestamps, basic_set, time_insensitive_set, labels = extract_limit_order_book(
         limit_order_filename=limit_order_filename, feature_filename=feature_filename,
         time_interval=time_interval, n_level=n_level)
@@ -49,7 +48,9 @@ def train_one_day(limit_order_filename, feature_filename, num_per_label,
     features = np.concatenate((basic_set, time_insensitive_set), axis=1)
     selected_data = features[sampling_index]
     selected_labels = labels[sampling_index]
-    svm_trainer.train_svm(data=selected_data, labels=selected_labels, c=1.0, kernel='rbf')
+    max_info_indices = feature_selection(selected_data, selected_labels)
+    selected_data = selected_data[:, max_info_indices]
+    svm_trainer.train_svm(data=selected_data, labels=selected_labels, c=1.0, kernel='rbf', g=0.01)
 
 
 def extract_limit_order_book(limit_order_filename, feature_filename,
@@ -59,4 +60,5 @@ def extract_limit_order_book(limit_order_filename, feature_filename,
         feature_filename=feature_filename,
         time_interval=time_interval, n_level=n_level)
     timestamps, basic_set, time_insensitive_set, labels = extractor.extract_features()
+    print("Order book {} has {} data points".format(limit_order_filename.split('/')[-1], len(labels)))
     return timestamps, basic_set, time_insensitive_set, labels

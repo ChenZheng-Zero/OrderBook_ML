@@ -8,9 +8,9 @@ import pdb
 def train_svm(data, labels, c=1.0, kernel="rbf", g=0.01):
     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=0)
     # data preprocessing
-    #scaler = preprocessing.StandardScaler().fit(X_train)
-    #scaler.transform(X_train)
-    #scaler.transform(X_test)
+    # scaler = preprocessing.StandardScaler().fit(X_train)
+    # scaler.transform(X_train)
+    # scaler.transform(X_test)
 
     clf = svm.SVC(C=c, kernel=kernel, gamma=g)
     clf.fit(X_train, y_train)
