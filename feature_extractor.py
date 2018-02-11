@@ -1,4 +1,3 @@
-from math import isnan
 from utils import time_to_int
 import numpy as np
 import os
