@@ -43,10 +43,10 @@ def train_one_day(limit_order_filename, feature_filename, num_per_label,
         limit_order_filename=limit_order_filename, feature_filename=feature_filename,
         time_interval=time_interval, n_level=n_level)
     sampling_index = get_samples_index(labels, num_per_label=num_per_label)
-    # selected_data = basic_set[sampling_index]
+    selected_data = basic_set[sampling_index]
     # selected_data = time_insensitive_set[sampling_index]
-    features = np.concatenate((basic_set, time_insensitive_set), axis=1)
-    selected_data = features[sampling_index]
+    # features = np.concatenate((basic_set, time_insensitive_set), axis=1)
+    # selected_data = features[sampling_index]
     selected_labels = labels[sampling_index]
     max_info_indices = feature_selection(selected_data, selected_labels)
     selected_data = selected_data[:, max_info_indices]

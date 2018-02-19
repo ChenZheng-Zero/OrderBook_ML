@@ -22,7 +22,8 @@ class FeatureExtractor:
         if not os.path.isfile(self.feature_filename):
             self.limit_order_df = pd.read_excel(self.limit_order_filename)
             # index starting from the valid level
-            self.delimiter_indices = self.get_delimiter_indices() 
+            self.delimiter_indices = self.get_delimiter_indices()
+            print("len delimiter_indices", len(self.delimiter_indices))
             # index at the end of every interval
             self.time_interval_indices = (np.array(self.get_time_interval_indices()) - 1).tolist() 
             basic_set, timestamps, mid_prices = self.extract_basic_set()
@@ -41,14 +42,13 @@ class FeatureExtractor:
     def extract_basic_set(self):
         """Extract basic set."""
         limit_book_indices = np.array(self.delimiter_indices)[self.time_interval_indices].tolist()
-        print("Start index in limit order: {}".format(limit_book_indices[0]))
         assert(len(limit_book_indices) > 0)
         timestamps = []
         basic_set = []
         mid_prices = []
-        init_time = time_to_int(self.limit_order_df["Time"][limit_book_indices[0]]) \
-            if time_to_int(self.limit_order_df["Time"][limit_book_indices[0]]) % self.time_interval != 0 \
-            else self.time_interval * ((time_to_int(self.limit_order_df["Time"][limit_book_indices[0]]) / self.time_interval) + 1)
+
+        init_time = self.get_init_time(limit_book_indices)
+
         init_index = self.time_interval_indices[0]
         for i in limit_book_indices:
             timestamps.append(init_time)
@@ -109,6 +109,7 @@ class FeatureExtractor:
                 else:
                     if count < self.n_level:
                         guaranteed_index = i + 1
+        print("guaranteed_index: ", guaranteed_index)
         return guaranteed_index
 
     def get_time_interval_indices(self):
@@ -125,27 +126,45 @@ class FeatureExtractor:
             next_timestamp += self.time_interval
         return time_interval_indices
 
-    def get_start_timestamp(self):
-        """Find the first timestamp in int."""
-        assert(len(self.delimiter_indices) > 0)
-        guaranteed_index = self.delimiter_indices[0]
-        guaranteed_timestamp = time_to_int(self.limit_order_df["Time"].iloc[guaranteed_index])
-        if guaranteed_timestamp % self.time_interval == 0:
-            start_timestamp = guaranteed_timestamp
-        else:
-            start_timestamp = self.time_interval * ((guaranteed_timestamp / self.time_interval) + 1)
-        return start_timestamp
-
     def get_time_interval_index(self, timestamp, current_index):
         """Find the first state for the desired timestamp."""
         for i in range(current_index, len(self.delimiter_indices)):
-            index = self.delimiter_indices[i]
-            current_timestamp = time_to_int(self.limit_order_df["Time"].iloc[index])
+            index = self.delimiter_indices[i] + 1
+            try:
+                current_timestamp = time_to_int(self.limit_order_df["Time"].iloc[index])
+            except:
+                print(self.delimiter_indices[i])
+                print(index)
+                exit(1)
             if current_timestamp == timestamp:
                 return i
             elif current_timestamp > timestamp:
                 return i - 1
         return -1
+
+    def get_start_timestamp(self):
+        """Find the first timestamp in int."""
+        assert(len(self.delimiter_indices) > 0)
+        guaranteed_index = self.delimiter_indices[0] + 1
+        print("Start timestamp:", self.limit_order_df["Time"].iloc[guaranteed_index])
+        guaranteed_timestamp = time_to_int(self.limit_order_df["Time"].iloc[guaranteed_index])
+        if guaranteed_timestamp % self.time_interval == 0:
+            start_timestamp = guaranteed_timestamp
+        else:
+            start_timestamp = self.time_interval * ((guaranteed_timestamp / self.time_interval) + 1)
+        print("Start timestamp int:", start_timestamp)
+        return start_timestamp
+
+    def get_init_time(self, limit_book_indices):
+        if limit_book_indices[0] == -1:
+            init_time_index = 0
+        else:
+            init_time_index = limit_book_indices[0]
+        init_time = time_to_int(self.limit_order_df["Time"][init_time_index]) \
+            if time_to_int(self.limit_order_df["Time"][init_time_index]) % self.time_interval == 0 \
+            else self.time_interval * ((time_to_int(self.limit_order_df["Time"][init_time_index])
+                                        / self.time_interval) + 1)
+        return init_time
 
     @staticmethod
     def get_time_insensitive_v2(v1):
