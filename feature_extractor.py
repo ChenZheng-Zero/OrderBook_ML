@@ -23,19 +23,19 @@ class FeatureExtractor:
             self.limit_order_df = pd.read_excel(self.limit_order_filename)
             # index starting from the valid level
             self.delimiter_indices = self.get_delimiter_indices()
-            print("len delimiter_indices", len(self.delimiter_indices))
-            # index at the end of every interval
-            self.time_interval_indices = (np.array(self.get_time_interval_indices()) - 1).tolist() 
-            basic_set, timestamps, mid_prices = self.extract_basic_set()
+            self.time_interval_indices = (np.array(self.get_time_interval_indices())).tolist() 
+            basic_set, timestamps, mid_prices, max_mid_prices = self.extract_basic_set()
+            labels = self.get_mid_price_labels(mid_prices, max_mid_prices)
             time_insensitive_set = self.extract_time_insensitive_set(basic_set)
-            labels = self.get_mid_price_labels(mid_prices)
             self.save_feature_json(self.feature_filename, timestamps, basic_set,
-                                   time_insensitive_set, labels, mid_prices)
+                                   time_insensitive_set, labels, mid_prices, max_mid_prices)
         df = pd.read_json(self.feature_filename, orient="records", lines="True")
         timestamps = df["timestamps"].tolist()
         basic_set = df["basic_set"].tolist()
         time_insensitive_set = df["time_insensitive_set"].tolist()
         labels = df["labels"].tolist()
+        mid_prices = df["mid_prices"].tolist()
+        max_mid_prices = df["max_mid_prices"].tolist()
         return np.array(timestamps), np.array(basic_set), \
             np.array(time_insensitive_set), np.array(labels)
 
@@ -46,30 +46,52 @@ class FeatureExtractor:
         timestamps = []
         basic_set = []
         mid_prices = []
-
+        max_mid_prices = []
         init_time = self.get_init_time(limit_book_indices)
 
-        init_index = self.time_interval_indices[0]
+        init_index = 0
         for i in limit_book_indices:
+            # print("init_index: ", init_index)
+            # append the timestamp
             timestamps.append(init_time)
-            init_time = init_time + self.time_interval
+            # append basic features       
             v1 = []
             for index in range(i + 1, i + 1 + self.n_level):
                 v1.append([self.limit_order_df["ASK_PRICE"][index],
                            self.limit_order_df["ASK_SIZE"][index],
                            self.limit_order_df["BID_PRICE"][index],
                            self.limit_order_df["BID_SIZE"][index]])
+            basic_set.append(np.array(v1).reshape(1, -1).tolist()[0])
 
-            # append the max mid-price in the interval
-            max_mid_price = 0
-            while np.array(self.delimiter_indices)[init_index] <= i:
+            # append mid-price of the snapshot
+            mid_price = (self.limit_order_df["ASK_PRICE"][i+1]\
+                    + self.limit_order_df["BID_PRICE"][i+1])/2
+            mid_prices.append(mid_price)
+            # print("The mid price at time {} with index {} is {}".format(init_time, i, mid_price))
+
+            # append the max mid-price till the snapshot
+            max_mid_price = mid_price
+            while init_index < len(self.delimiter_indices) and np.array(self.delimiter_indices)[init_index] <= i:
                 max_mid_price = max(max_mid_price, (self.limit_order_df["ASK_PRICE"][np.array(self.delimiter_indices)[init_index]+1]\
                     + self.limit_order_df["BID_PRICE"][np.array(self.delimiter_indices)[init_index]+1])/2)
+                # print("The max mid price at time {} with index {} is {}".format(self.limit_order_df["Time"][np.array(self.delimiter_indices)[init_index]+1], init_index, max_mid_price))
                 init_index = init_index + 1
-            mid_prices.append(max_mid_price)
+            max_mid_prices.append(max_mid_price)   
+            # update the snapshot timestamp
+            init_time = init_time + self.time_interval
 
-            basic_set.append(np.array(v1).reshape(1, -1).tolist()[0])
-        return basic_set, timestamps, mid_prices
+        # reach the end of trading period   
+        max_mid_price = (self.limit_order_df["ASK_PRICE"][np.array(self.delimiter_indices)[-1]+1]\
+                + self.limit_order_df["BID_PRICE"][np.array(self.delimiter_indices)[-1]+1])/2
+        while init_index < len(self.delimiter_indices) and np.array(self.delimiter_indices)[init_index] <= self.delimiter_indices[-1]:
+            max_mid_price = max(max_mid_price, (self.limit_order_df["ASK_PRICE"][np.array(self.delimiter_indices)[init_index]+1]\
+                + self.limit_order_df["BID_PRICE"][np.array(self.delimiter_indices)[init_index]+1])/2)
+            # print("End The max mid price at time {} with index {} is {}".format(self.limit_order_df["Time"][np.array(self.delimiter_indices)[init_index]+1], init_index, max_mid_price))
+            init_index = init_index + 1
+        max_mid_prices.append(max_mid_price) 
+        max_mid_prices = max_mid_prices[1:]
+
+        return basic_set, timestamps, mid_prices, max_mid_prices
 
     def extract_time_insensitive_set(self, basic_set):
         """Extract time insensitive features."""
@@ -109,7 +131,7 @@ class FeatureExtractor:
                 else:
                     if count < self.n_level:
                         guaranteed_index = i + 1
-        print("guaranteed_index: ", guaranteed_index)
+        # print("guaranteed_index: ", guaranteed_index)
         return guaranteed_index
 
     def get_time_interval_indices(self):
@@ -146,13 +168,13 @@ class FeatureExtractor:
         """Find the first timestamp in int."""
         assert(len(self.delimiter_indices) > 0)
         guaranteed_index = self.delimiter_indices[0] + 1
-        print("Start timestamp:", self.limit_order_df["Time"].iloc[guaranteed_index])
+        # print("Start timestamp:", self.limit_order_df["Time"].iloc[guaranteed_index])
         guaranteed_timestamp = time_to_int(self.limit_order_df["Time"].iloc[guaranteed_index])
         if guaranteed_timestamp % self.time_interval == 0:
             start_timestamp = guaranteed_timestamp
         else:
             start_timestamp = self.time_interval * ((guaranteed_timestamp / self.time_interval) + 1)
-        print("Start timestamp int:", start_timestamp)
+        # print("Start timestamp int:", start_timestamp)
         return start_timestamp
 
     def get_init_time(self, limit_book_indices):
@@ -198,13 +220,11 @@ class FeatureExtractor:
         return [sum(p_ask_p_bid), sum(v_ask_v_bid)]
 
     @staticmethod
-    def get_mid_price_labels(mid_prices):
+    def get_mid_price_labels(mid_prices, max_mid_prices):
         """Get the labels"""
-        gt = [0]  # let the start label be 0
-        if len(mid_prices) == 1:
-            return gt
-        for i in range(1, len(mid_prices)):
-            if mid_prices[i] - mid_prices[i - 1] > 0:
+        gt = []
+        for i in range(0, len(mid_prices)):
+            if max_mid_prices[i] - mid_prices[i] > 0:
                 gt.append(1)
             else:
                 gt.append(0)
@@ -212,14 +232,14 @@ class FeatureExtractor:
 
     @staticmethod
     def save_feature_json(feature_filename, timestamps, basic_set,
-                          time_insensitive_set, labels, mid_prices):
+                          time_insensitive_set, labels, mid_prices, max_mid_prices):
         """Save the json."""
         feature_dict = {"timestamps": timestamps, "basic_set": basic_set,
                         "time_insensitive_set": time_insensitive_set,
-                        "labels": labels, "mid_pices": mid_prices}
+                        "labels": labels, "mid_prices": mid_prices, "max_mid_prices": max_mid_prices}
         df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set",
                                                       "time_insensitive_set",
-                                                      "labels", "mid_prices"])
+                                                      "labels", "mid_prices", "max_mid_prices"])
         df.to_json(path_or_buf=feature_filename, orient="records", lines=True)
 
 

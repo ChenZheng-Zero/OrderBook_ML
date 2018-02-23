@@ -5,12 +5,15 @@ from sklearn.metrics import confusion_matrix
 import pdb
 
 
-def train_svm(data, labels, c=1.0, kernel="rbf", g=0.01):
-    X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=0)
+def train_svm(train_data, train_labels, test_data, test_labels, c=1.0, kernel="rbf", g=0.01):
+    X_train = train_data
+    X_test = test_data
+    y_train = train_labels
+    y_test = test_labels
     # data preprocessing
-    # scaler = preprocessing.StandardScaler().fit(X_train)
-    # scaler.transform(X_train)
-    # scaler.transform(X_test)
+    scaler = preprocessing.StandardScaler().fit(X_train)
+    scaler.transform(X_train)
+    scaler.transform(X_test)
 
     clf = svm.SVC(C=c, kernel=kernel, gamma=g)
     clf.fit(X_train, y_train)
@@ -20,3 +23,4 @@ def train_svm(data, labels, c=1.0, kernel="rbf", g=0.01):
     print("SVM score is {}".format(score))
     print("confusion matrix: ")
     print(cnf_matrix)
+    return score, clf
