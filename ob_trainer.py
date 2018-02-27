@@ -11,8 +11,9 @@ import pdb
 
 def train_all_days(input_folder, output_folder, n_level=10):
     limit_order_books = [file for file in os.listdir(input_folder)
-                         if file.startswith("PN_OB")]
+                         if file.startswith("GOOGL_OB")]
     print("Limit order books: ", limit_order_books)
+
     basic_set = []
     time_insensitive_set = []
     labels = []
@@ -30,13 +31,26 @@ def train_all_days(input_folder, output_folder, n_level=10):
     basic_set = np.array(basic_set)
     time_insensitive_set = np.array(time_insensitive_set)
     labels = np.array(labels)
-    sampling_index = get_samples_index(labels, num_per_label=30000)
-    # selected_data = basic_set[sampling_index]
-    # selected_data = time_insensitive_set[sampling_index]
+
+    train_index, test_index, idx = get_samples_index(labels, split = 0.25)
     features = np.concatenate((basic_set, time_insensitive_set), axis=1)
-    selected_data = features[sampling_index]
-    selected_labels = labels[sampling_index]
-    svm_trainer.train_svm(data=selected_data, labels=selected_labels, c=1.0, kernel='rbf', g=0.01)
+    selected_train_data = features[train_index]
+    selected_train_labels = labels[train_index]
+    print(train_index)
+    selected_test_data = features[test_index]
+    selected_test_labels = labels[test_index]
+    print(test_index)
+
+    # max_info_indices = feature_selection(selected_data, selected_labels)
+    # selected_data = selected_data[:, max_info_indices]
+    C = [5, 10, 20, 40]
+    G = [1e-5, 1e-6, 1e-7, 1e-8]
+    # optimal 5e4, 1e-7
+    for c in C:
+        for g in G:
+            print("SVM c = {}".format(c) + " g = {}".format(g))
+            score, model = svm_trainer.train_svm(train_data=selected_train_data, train_labels=selected_train_labels, \
+                test_data=selected_test_data, test_labels=selected_test_labels,c=c, kernel='rbf', g=g)
 
 
 def train_one_day(limit_order_filename, feature_filename,

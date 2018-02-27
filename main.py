@@ -12,10 +12,10 @@ def train_one_day():
 def train_all_order_books():
     """Train all order books."""
     n_level = 10
-    input_folder = "../../data/input/OB/"
-    output_folder = "../../data/output/"
+    input_folder = "../GOOGL/"
+    output_folder = "../output/"
     ob_trainer.train_all_days(input_folder, output_folder, n_level=n_level)
 
 
 if __name__ == '__main__':
-    train_one_day()
+    train_all_order_books()

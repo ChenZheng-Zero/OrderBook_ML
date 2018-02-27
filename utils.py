@@ -11,7 +11,7 @@ def time_to_int(timestamp):
     """Change time stamp to integer in ms."""
     if len(str(timestamp)) < len("2016-08-01 9:30:00.000"):
         timestamp += ".000"
-    date = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f')
+    date = datetime.strptime(timestamp, '%Y/%m/%d %H:%M:%S.%f')
     current_time = int(time.mktime(date.timetuple())*1e3 + date.microsecond/1e3)
     return current_time
 
