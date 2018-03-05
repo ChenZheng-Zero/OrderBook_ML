@@ -11,7 +11,7 @@ import pdb
 
 def train_all_days(input_folder, output_folder, n_level=10):
     limit_order_books = [file for file in os.listdir(input_folder)
-                         if file.startswith("GOOGL_OB")]
+                         if file.startswith("PN_OB")]
     print("Limit order books: ", limit_order_books)
 
     basic_set = []
@@ -22,11 +22,13 @@ def train_all_days(input_folder, output_folder, n_level=10):
         date = utils.extract_date_from_filepath(limit_order_book)
         feature_filepath = output_folder + date + "_" + str(n_level) + ".json"
         limit_order_filename = input_folder + limit_order_book
-        timestamps, one_day_basic_set, one_day_time_insensitive_set, one_day_labels = \
+        timestamps, one_day_basic_set, one_day_time_insensitive_set, one_day_mid_price_labels, one_day_bid_labels = \
             extract_limit_order_book(limit_order_filename=limit_order_filename, feature_filename=feature_filepath)
         basic_set.extend(one_day_basic_set)
         time_insensitive_set.extend(one_day_time_insensitive_set)
-        labels.extend(one_day_labels)
+        # TODO: choose labels here
+        # labels.extend(one_day_mid_price_labels)
+        labels.extend(one_day_bid_labels)
 
     basic_set = np.array(basic_set)
     time_insensitive_set = np.array(time_insensitive_set)
@@ -55,11 +57,15 @@ def train_all_days(input_folder, output_folder, n_level=10):
 
 def train_one_day(limit_order_filename, feature_filename,
                   n_level=10, time_interval=100):
-    timestamps, basic_set, time_insensitive_set, labels = extract_limit_order_book(
+    timestamps, basic_set, time_insensitive_set, mid_price_labels, bid_labels = extract_limit_order_book(
         limit_order_filename=limit_order_filename, feature_filename=feature_filename,
         time_interval=time_interval, n_level=n_level)
 
-    train_index, test_index, idx = get_samples_index(labels, split = 0.25)
+    # TODO: choose labels here
+    labels = mid_price_labels
+    # labels = bid_labels
+
+    train_index, test_index, idx = get_samples_index(mid_price_labels, split=0.25)
     # selected_data = basic_set[sampling_index]
     # selected_data = time_insensitive_set[sampling_index]
     features = np.concatenate((basic_set, time_insensitive_set), axis=1)
@@ -80,13 +86,12 @@ def train_one_day(limit_order_filename, feature_filename,
         for g in G:
             print("SVM c = {}".format(c) + " g = {}".format(g))
             score, model = svm_trainer.train_svm(train_data=selected_train_data, train_labels=selected_train_labels, \
-                test_data=selected_test_data, test_labels=selected_test_labels,c=c, kernel='rbf', g=g)
+                test_data=selected_test_data, test_labels=selected_test_labels, c=c, kernel='rbf', g=g)
 
     # execution strategy based on ground truth
     test_data = features[idx:]
     test_labels = labels[idx:]
     cash = execution_strategy.execution(full_test_data=test_data, full_test_labels=test_labels, max_holdings=200, unit=1, tick_increment=0.01)
-
 
 
 def extract_limit_order_book(limit_order_filename, feature_filename,
@@ -95,6 +100,6 @@ def extract_limit_order_book(limit_order_filename, feature_filename,
         limit_order_filename=limit_order_filename,
         feature_filename=feature_filename,
         time_interval=time_interval, n_level=n_level)
-    timestamps, basic_set, time_insensitive_set, labels = extractor.extract_features()
-    print("Order book {} has {} data points".format(limit_order_filename.split('/')[-1], len(labels)))
-    return timestamps, basic_set, time_insensitive_set, labels
+    timestamps, basic_set, time_insensitive_set, mid_price_labels, bid_labels = extractor.extract_features()
+    print("Order book {} has {} data points".format(limit_order_filename.split('/')[-1], len(mid_price_labels)))
+    return timestamps, basic_set, time_insensitive_set, mid_price_labels, bid_labels
