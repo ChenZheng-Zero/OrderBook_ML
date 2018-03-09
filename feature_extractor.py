@@ -7,57 +7,63 @@ import pdb
 
 class FeatureExtractor:
 
-    def __init__(self, limit_order_filename, feature_filename,
+    def __init__(self, limit_order_filename, feature_filename, event_time,
                  time_interval, n_level):
         self.limit_order_filename = limit_order_filename
         self.limit_order_df = None
         self.feature_filename = feature_filename
+        self.event_time = event_time
         self.time_interval = time_interval
         self.n_level = n_level
         self.delimiter_indices = []
-        self.time_interval_indices = []
+        self.indices = []
 
     def extract_features(self):
         """Extract features from limit order book."""
         if not os.path.isfile(self.feature_filename):
             self.limit_order_df = pd.read_excel(self.limit_order_filename)
-            # index starting from the valid level
             self.delimiter_indices = self.get_delimiter_indices()
-            self.time_interval_indices = self.get_time_interval_indices()
-            basic_set, timestamps, mid_prices, max_mid_prices, max_bid_prices = self.extract_basic_set()
+            if self.event_time == 'E':
+                self.indices = range(0, len(self.delimiter_indices))
+            else:
+                self.indices = self.get_time_interval_indices()
+
+            basic_set, timestamps, mid_prices, max_mid_prices = self.extract_basic_set()
             mid_price_labels = self.get_mid_price_labels(mid_prices, max_mid_prices)
-            bid_labels = self.get_bid_labels(basic_set, max_bid_prices)
+            spread_crossing_labels = self.get_spread_crossing_labels(np.array(basic_set)[:, 2], np.array(basic_set)[:, 0])
+            # pdb.set_trace()
             time_insensitive_set = self.extract_time_insensitive_set(basic_set)
             self.save_feature_json(self.feature_filename, timestamps, basic_set,
-                                   time_insensitive_set, mid_price_labels, mid_prices, max_mid_prices,
-                                   bid_labels)
+                                   time_insensitive_set, mid_price_labels, spread_crossing_labels, mid_prices, max_mid_prices)
+
         df = pd.read_json(self.feature_filename, orient="records", lines="True")
         timestamps = df["timestamps"].tolist()
         basic_set = df["basic_set"].tolist()
         time_insensitive_set = df["time_insensitive_set"].tolist()
         mid_price_labels = df["mid_price_labels"].tolist()
-        bid_labels = df["bid_labels"].tolist()
-
+        spread_crossing_labels = df["spread_crossing_labels"].tolist()
         return np.array(timestamps), np.array(basic_set), \
-            np.array(time_insensitive_set), np.array(mid_price_labels), \
-            np.array(bid_labels)
+            np.array(time_insensitive_set), np.array(mid_price_labels), np.array(spread_crossing_labels)
 
     def extract_basic_set(self):
         """Extract basic set."""
-        limit_book_indices = np.array(self.delimiter_indices)[self.time_interval_indices].tolist()
+        limit_book_indices = np.array(self.delimiter_indices)[self.indices].tolist()
         assert(len(limit_book_indices) > 0)
         timestamps = []
         basic_set = []
         mid_prices = []
         max_mid_prices = []
-        max_bid_prices = []
-        init_time = self.get_init_time(limit_book_indices)
+        if self.event_time == 'T':
+            init_index = 0
+            init_time = self.get_init_time(limit_book_indices)
 
-        price_index = 0
         for i in limit_book_indices:
-            # print("price_index: ", price_index)
             # append the timestamp
-            timestamps.append(init_time)
+            if self.event_time == 'E':
+                timestamps.append(time_to_int(self.limit_order_df["Time"][i+1]))
+            else:
+                timestamps.append(init_time)
+
             # append basic features       
             v1 = []
             for index in range(i + 1, i + 1 + self.n_level):
@@ -73,36 +79,32 @@ class FeatureExtractor:
             mid_prices.append(mid_price)
             # print("The mid price at time {} with index {} is {}".format(init_time, i, mid_price))
 
-            # append the max mid-price and max bid price till the snapshot
-            max_bid_price = self.limit_order_df["BID_PRICE"][i+1]
+            # append the max mid-price till the snapshot
             max_mid_price = mid_price
-            while price_index < len(self.delimiter_indices) and self.delimiter_indices[price_index] <= i:
-                max_mid_price = max(max_mid_price, (self.limit_order_df["ASK_PRICE"][self.delimiter_indices[price_index]+1]\
-                    + self.limit_order_df["BID_PRICE"][self.delimiter_indices[price_index]+1])/2)
-                # print("The max mid price at time {} with index {} is {}".format(self.limit_order_df["Time"][np.array(self.delimiter_indices)[price_index]+1], price_index, max_mid_price))
-                max_bid_price = max(max_bid_price, self.limit_order_df["BID_PRICE"][self.delimiter_indices[price_index]+1])
-                price_index = price_index + 1
-            max_mid_prices.append(max_mid_price)
-            max_bid_prices.append(max_bid_price)
-            # update the snapshot timestamp
-            init_time = init_time + self.time_interval
 
-        # reach the end of trading period
-        max_mid_price = (self.limit_order_df["ASK_PRICE"][limit_book_indices[-1]+1]\
-                + self.limit_order_df["BID_PRICE"][limit_book_indices[-1]+1])/2
-        max_bid_price = self.limit_order_df["BID_PRICE"][i+1]
-        while price_index < len(self.delimiter_indices) and self.delimiter_indices[price_index] <= self.delimiter_indices[-1]:
-            max_mid_price = max(max_mid_price, (self.limit_order_df["ASK_PRICE"][np.array(self.delimiter_indices)[price_index]+1]\
-                + self.limit_order_df["BID_PRICE"][np.array(self.delimiter_indices)[price_index]+1])/2)
-            # print("End The max mid price at time {} with index {} is {}".format(self.limit_order_df["Time"][np.array(self.delimiter_indices)[price_index]+1], price_index, max_mid_price))
-            max_bid_price = max(max_bid_price, self.limit_order_df["BID_PRICE"][self.delimiter_indices[price_index]+1])
-            price_index = price_index + 1
-        max_mid_prices.append(max_mid_price)
-        max_bid_prices.append(max_bid_price)
+            if self.event_time == 'T':
+                while init_index < len(self.delimiter_indices) and np.array(self.delimiter_indices)[init_index] <= i:
+                    max_mid_price = max(max_mid_price, (self.limit_order_df["ASK_PRICE"][np.array(self.delimiter_indices)[init_index]+1]
+                        + self.limit_order_df["BID_PRICE"][np.array(self.delimiter_indices)[init_index]+1])/2)
+                    init_index = init_index + 1
+                # update the snapshot timestamp
+                init_time = init_time + self.time_interval
+
+            max_mid_prices.append(max_mid_price)  
+
+        # reach the end of trading period   
+        max_mid_price = (self.limit_order_df["ASK_PRICE"][np.array(self.delimiter_indices)[-1]+1]\
+                + self.limit_order_df["BID_PRICE"][np.array(self.delimiter_indices)[-1]+1])/2
+        if self.event_time == 'T':
+            while init_index < len(self.delimiter_indices) and np.array(self.delimiter_indices)[init_index] <= self.delimiter_indices[-1]:
+                max_mid_price = max(max_mid_price, (self.limit_order_df["ASK_PRICE"][np.array(self.delimiter_indices)[init_index]+1]\
+                    + self.limit_order_df["BID_PRICE"][np.array(self.delimiter_indices)[init_index]+1])/2)
+                init_index = init_index + 1
+
+        max_mid_prices.append(max_mid_price) 
         max_mid_prices = max_mid_prices[1:]
-        max_bid_prices = max_bid_prices[1:]
 
-        return basic_set, timestamps, mid_prices, max_mid_prices, max_bid_prices
+        return basic_set, timestamps, mid_prices, max_mid_prices
 
     def extract_time_insensitive_set(self, basic_set):
         """Extract time insensitive features."""
@@ -227,7 +229,7 @@ class FeatureExtractor:
 
     @staticmethod
     def get_mid_price_labels(mid_prices, max_mid_prices):
-        """Get the labels"""
+        """Get the mid price labels"""
         gt = []
         for i in range(0, len(mid_prices)):
             if max_mid_prices[i] - mid_prices[i] > 0:
@@ -237,30 +239,28 @@ class FeatureExtractor:
         return gt
 
     @staticmethod
-    def get_bid_labels(basic_set, max_bid_prices):
-        """Get the labels"""
-        ask_prices = np.array(basic_set)[:, 0].tolist()
+    def get_spread_crossing_labels(best_bids, best_asks):
+        """Get the spread crossing labels"""
         gt = []
-        assert (len(ask_prices) == len(max_bid_prices))
-        for i in range(0, len(ask_prices)):
-            if max_bid_prices[i] - ask_prices[i] >= 0:
+        for i in range(0, len(best_asks)-1):
+            if best_bids[i+1] - best_asks[i] >= 0:
                 gt.append(1)
             else:
                 gt.append(0)
+        gt.append(0)
         return gt
 
     @staticmethod
     def save_feature_json(feature_filename, timestamps, basic_set,
-                          time_insensitive_set, mid_price_labels, mid_prices, max_mid_prices,
-                          bid_labels):
+                          time_insensitive_set, mid_price_labels, spread_crossing_labels, mid_prices, max_mid_prices):
         """Save the json."""
         feature_dict = {"timestamps": timestamps, "basic_set": basic_set,
                         "time_insensitive_set": time_insensitive_set,
-                        "mid_price_labels": mid_price_labels, "bid_labels": bid_labels,
+                        "mid_price_labels": mid_price_labels, "spread_crossing_labels": spread_crossing_labels,
                         "mid_prices": mid_prices, "max_mid_prices": max_mid_prices}
         df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set",
                                                       "time_insensitive_set",
-                                                      "mid_price_labels", "bid_labels",
+                                                      "mid_price_labels", "spread_crossing_labels",
                                                       "mid_prices", "max_mid_prices"])
         df.to_json(path_or_buf=feature_filename, orient="records", lines=True)
 
