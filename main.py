@@ -3,12 +3,14 @@ import ob_trainer
 
 
 @click.command()
+@click.argument('date')
 @click.argument('event_time')
 @click.argument('label_type')
-def train_one_day(event_time, label_type, n_level=10):
+def train_one_day(date, event_time, label_type, n_level=10):
     """Train one day's order book."""
-    limit_order_filename = "../../data/input/OB/PN_OB_080316.xlsx"
-    feature_filename = "../../data/output/080316_" + event_time + '_' + str(n_level) + ".json"
+    limit_order_filename = "../PN_0816/PN_OB_" + date + ".xlsx"
+    #limit_order_filename = "../../data/input/OB/PN_OB_080316.xlsx"
+    feature_filename = "../output/" + date + "_" + event_time + '_' + str(n_level) + ".json"
     ob_trainer.train_one_day(limit_order_filename, feature_filename, event_time, label_type,
                              n_level=10, time_interval=100)
 
