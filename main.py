@@ -1,5 +1,6 @@
 import click
 import ob_trainer
+import os
 
 
 @click.command()
@@ -9,9 +10,13 @@ import ob_trainer
 def train_one_day(date, event_time, label_type, n_level=10):
     """Train one day's order book."""
     limit_order_filename = "../PN_0816/PN_OB_" + date + ".xlsx"
-    #limit_order_filename = "../../data/input/OB/PN_OB_080316.xlsx"
+    trd_order_filename = "../PN_0816/PN_TRD_" + date + ".xlsx"
+    cancel_order_filename = "../PN_0816/PN_Order_Cancel_" + date + ".xlsx"
+    submission_filename = "../PN_0816/PN_SUB_" + date + ".xlsx"
     feature_filename = "../output/" + date + "_" + event_time + '_' + str(n_level) + ".json"
-    ob_trainer.train_one_day(limit_order_filename, feature_filename, event_time, label_type,
+    ob_trainer.train_one_day(limit_order_filename, trd_order_filename,
+                             cancel_order_filename, submission_filename,
+                             feature_filename, event_time, label_type,
                              n_level=10, time_interval=100)
 
 

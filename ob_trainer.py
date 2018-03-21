@@ -53,19 +53,27 @@ def train_all_days(input_folder, output_folder, event_time, label_type,
                 test_data=selected_test_data, test_labels=selected_test_labels,c=c, kernel='rbf', g=g)
 
 
-def train_one_day(limit_order_filename, feature_filename, event_time, label_type,
+def train_one_day(limit_order_filename, trd_order_filename, cancel_order_filename,
+                  submission_filename, feature_filename, event_time, label_type,
                   n_level=10, time_interval=100):
-    timestamps, basic_set, time_insensitive_set, mid_price_labels, spread_crossing_labels = extract_limit_order_book(
-        limit_order_filename=limit_order_filename, feature_filename=feature_filename, event_time=event_time,
+    extractor = feature_extractor.FeatureExtractor(
+        limit_order_filename=limit_order_filename,
+        trd_order_filename=trd_order_filename,
+        cancel_order_filename=cancel_order_filename,
+        submission_filename=submission_filename,
+        feature_filename=feature_filename, event_time=event_time,
         time_interval=time_interval, n_level=n_level)
+    timestamps, basic_set, time_insensitive_set, time_sensitive_set, \
+        mid_price_labels, spread_crossing_labels = extractor.extract_features()
+    print("Order book {} has {} data points".format(limit_order_filename.split('/')[-1], len(mid_price_labels)))
 
     if label_type == 'mid':
         labels = mid_price_labels
     else:
         labels = spread_crossing_labels
 
-    train_index, test_index, idx = get_samples_index(labels, split = 0.25)
-    features = np.concatenate((basic_set, time_insensitive_set), axis=1)
+    train_index, test_index, idx = get_samples_index(labels, split=0.25)
+    features = np.concatenate((basic_set, time_insensitive_set, time_sensitive_set), axis=1)
     selected_train_data = features[train_index]
     selected_train_labels = labels[train_index]
     selected_test_data = features[test_index]
@@ -88,13 +96,3 @@ def train_one_day(limit_order_filename, feature_filename, event_time, label_type
     cash = execution_strategy.execution(full_test_data=test_data, full_test_labels=test_labels,
                                         max_holdings=200, unit=1, tick_increment=0.01)
 
-
-def extract_limit_order_book(limit_order_filename, feature_filename, event_time,
-                             time_interval=100, n_level=10):
-    extractor = feature_extractor.FeatureExtractor(
-        limit_order_filename=limit_order_filename,
-        feature_filename=feature_filename, event_time=event_time,
-        time_interval=time_interval, n_level=n_level)
-    timestamps, basic_set, time_insensitive_set, mid_price_labels, spread_crossing_labels = extractor.extract_features()
-    print("Order book {} has {} data points".format(limit_order_filename.split('/')[-1], len(mid_price_labels)))
-    return timestamps, basic_set, time_insensitive_set, mid_price_labels, spread_crossing_labels
