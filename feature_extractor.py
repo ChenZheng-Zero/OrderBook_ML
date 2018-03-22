@@ -71,17 +71,16 @@ class FeatureExtractor:
         for timestamp in feature_timestamps:
             curr_timestamp_list = [timestamp] * len(order_timestamps)
             v6 = list(map(self.get_order_num, order_timestamps, curr_timestamp_list, delta_t_list))
-            # v6_T = list(map(self.get_order_num, order_timestamps, curr_timestamp_list, delta_T_list))
-            # TODO
-            # v7 = np.sign(np.array(v6_T) - np.array(v6)).tolist()
-            time_sensitive_set.append(v6)
+            v6_T = list(map(self.get_order_num, order_timestamps, curr_timestamp_list, delta_T_list))
+            v7 = [v6[i] > v6_T[i] for i in range(len(v6))]
+            time_sensitive_set.append(v6 + v7)
         return time_sensitive_set
 
     @staticmethod
     def get_order_num(order_timestamps, cur_timestamp, delta_time):
         left = bisect.bisect_left(order_timestamps, cur_timestamp - delta_time)
         right = bisect.bisect_right(order_timestamps, cur_timestamp)
-        return right - left
+        return (right - left)/delta_time
 
     @staticmethod
     def get_order_timestamp(order_filename, buy_sell_flag):

@@ -22,6 +22,7 @@ def train_all_days(input_folder, output_folder, event_time, label_type,
         date = utils.extract_date_from_filepath(limit_order_book)
         feature_filename = output_folder + date + '_' + event_time + '_' + str(n_level) + ".json"
         limit_order_filename = input_folder + limit_order_book
+
         timestamps, basic_set, time_insensitive_set, mid_price_labels, spread_crossing_labels = extract_limit_order_book(
             limit_order_filename=limit_order_filename, feature_filename=feature_filename, event_time=event_time,
             time_interval=time_interval, n_level=n_level)
@@ -36,7 +37,7 @@ def train_all_days(input_folder, output_folder, event_time, label_type,
     time_insensitive_set = np.array(all_time_insensitive_set)
     labels = np.array(labels)
 
-    train_index, test_index, idx = get_samples_index(labels, split = 0.25)
+    train_index, test_index, idx = get_samples_index(labels, split=0.25)
     features = np.concatenate((basic_set, time_insensitive_set), axis=1)
     selected_train_data = features[train_index]
     selected_train_labels = labels[train_index]
@@ -82,8 +83,9 @@ def train_one_day(limit_order_filename, trd_order_filename, cancel_order_filenam
     # max_info_indices = feature_selection(selected_data, selected_labels)
     # selected_data = selected_data[:, max_info_indices]
     C = [1, 1e1, 1e2, 1e3, 1e4, 1e5]
-    G = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8]
+    G = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
     # optimal 5e4, 1e-7
+    # optimal 10000, 1e-8, accuracy 78%, precision 71%
     for c in C:
         for g in G:
             print("SVM c = {}".format(c) + " g = {}".format(g))

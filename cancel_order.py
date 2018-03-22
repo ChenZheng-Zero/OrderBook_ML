@@ -50,9 +50,9 @@ def get_cancel_order(order_filename):
     cancel_ord['SIZE'] = cancel_ord['SIZE'] - cancel_ord['SIZE_trd']
     cancel_ord.drop(columns='SIZE_trd', inplace=True)
     cancel_ord = cancel_ord.loc[cancel_ord['SIZE'] > 0, :]
-    pdb.set_trace()
+    # pdb.set_trace()
     cancel_ord.to_excel(tgt_path, index=False)
 
 
 if __name__ == '__main__':
-    get_cancel_order('PN_Order_Raw_081516.xlsx')
+    get_cancel_order('PN_Order_Raw_080116.xlsx')
