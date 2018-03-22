@@ -1,0 +1,420 @@
+Order book PN_OB_081716.xlsx has 25804 data points
+label 0 has 22523
+label 1 has 3281
+SVM c = 1 g = 0.01
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 1 g = 0.001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 1 g = 0.0001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 1 g = 1e-05
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 1 g = 1e-06
+SVM accuracy is 0.5018270401948843
+SVM precision is 0.6363636363636364
+confusion matrix: 
+[[817   4]
+ [814   7]]
+SVM c = 1 g = 1e-07
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10.0 g = 0.01
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10.0 g = 0.001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10.0 g = 0.0001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10.0 g = 1e-05
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10.0 g = 1e-06
+SVM accuracy is 0.38976857490864797
+SVM precision is 0.2314540059347181
+confusion matrix: 
+[[562 259]
+ [743  78]]
+SVM c = 10.0 g = 1e-07
+SVM accuracy is 0.4805115712545676
+SVM precision is 0.4574468085106383
+confusion matrix: 
+[[617 204]
+ [649 172]]
+SVM c = 100.0 g = 0.01
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 100.0 g = 0.001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 100.0 g = 0.0001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 100.0 g = 1e-05
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 100.0 g = 1e-06
+SVM accuracy is 0.4123020706455542
+SVM precision is 0.2631578947368421
+confusion matrix: 
+[[597 224]
+ [741  80]]
+SVM c = 100.0 g = 1e-07
+SVM accuracy is 0.42448233861144946
+SVM precision is 0.3973509933774834
+confusion matrix: 
+[[457 364]
+ [581 240]]
+SVM c = 1000.0 g = 0.01
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 1000.0 g = 0.001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 1000.0 g = 0.0001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 1000.0 g = 1e-05
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 1000.0 g = 1e-06
+SVM accuracy is 0.42935444579780757
+SVM precision is 0.23873873873873874
+confusion matrix: 
+[[652 169]
+ [768  53]]
+SVM c = 1000.0 g = 1e-07
+SVM accuracy is 0.45493300852618757
+SVM precision is 0.4421875
+confusion matrix: 
+[[464 357]
+ [538 283]]
+SVM c = 10000.0 g = 0.01
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10000.0 g = 0.001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10000.0 g = 0.0001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10000.0 g = 1e-05
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 10000.0 g = 1e-06
+SVM accuracy is 0.4397076735688185
+SVM precision is 0.2537313432835821
+confusion matrix: 
+[[671 150]
+ [770  51]]
+SVM c = 10000.0 g = 1e-07
+SVM accuracy is 0.5170523751522533
+SVM precision is 0.5183727034120735
+confusion matrix: 
+[[454 367]
+ [426 395]]
+SVM c = 100000.0 g = 0.01
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 100000.0 g = 0.001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 100000.0 g = 0.0001
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 100000.0 g = 1e-05
+SVM accuracy is 0.5
+SVM precision is 0.0
+confusion matrix: 
+[[821   0]
+ [821   0]]
+SVM c = 100000.0 g = 1e-06
+SVM accuracy is 0.47381242387332523
+SVM precision is 0.34532374100719426
+confusion matrix: 
+[[730  91]
+ [773  48]]
+SVM c = 100000.0 g = 1e-07
+SVM accuracy is 0.5475030450669914
+SVM precision is 0.5503875968992248
+confusion matrix: 
+[[473 348]
+ [395 426]]
+Buy at price 9.11 for 1 units. Current cash is -9.11 and current holding is 1
+Buy at price 9.1 for 1 units. Current cash is -18.21 and current holding is 2
+Buy at price 9.1 for 1 units. Current cash is -27.310000000000002 and current holding is 3
+Buy at price 9.1 for 1 units. Current cash is -36.410000000000004 and current holding is 4
+Buy at price 9.11 for 1 units. Current cash is -45.52 and current holding is 5
+Buy at price 9.11 for 1 units. Current cash is -54.63 and current holding is 6
+Buy at price 9.11 for 1 units. Current cash is -63.74 and current holding is 7
+Buy at price 9.11 for 1 units. Current cash is -72.85 and current holding is 8
+Buy at price 9.12 for 1 units. Current cash is -81.97 and current holding is 9
+Buy at price 9.12 for 1 units. Current cash is -91.09 and current holding is 10
+Buy at price 9.11 for 1 units. Current cash is -100.2 and current holding is 11
+Buy at price 9.12 for 1 units. Current cash is -109.32000000000001 and current holding is 12
+Buy at price 9.12 for 1 units. Current cash is -118.44000000000001 and current holding is 13
+Buy at price 9.14 for 1 units. Current cash is -127.58000000000001 and current holding is 14
+Buy at price 9.13 for 1 units. Current cash is -136.71 and current holding is 15
+Buy at price 9.11 for 1 units. Current cash is -145.82 and current holding is 16
+Buy at price 9.11 for 1 units. Current cash is -154.93 and current holding is 17
+Buy at price 9.11 for 1 units. Current cash is -164.04000000000002 and current holding is 18
+Buy at price 9.12 for 1 units. Current cash is -173.16000000000003 and current holding is 19
+Buy at price 9.12 for 1 units. Current cash is -182.28000000000003 and current holding is 20
+Buy at price 9.11 for 1 units. Current cash is -191.39000000000004 and current holding is 21
+Buy at price 9.11 for 1 units. Current cash is -200.50000000000006 and current holding is 22
+Buy at price 9.12 for 1 units. Current cash is -209.62000000000006 and current holding is 23
+Buy at price 9.11 for 1 units. Current cash is -218.73000000000008 and current holding is 24
+Buy at price 9.12 for 1 units. Current cash is -227.85000000000008 and current holding is 25
+Buy at price 9.11 for 1 units. Current cash is -236.9600000000001 and current holding is 26
+Buy at price 9.12 for 1 units. Current cash is -246.0800000000001 and current holding is 27
+Buy at price 9.12 for 1 units. Current cash is -255.2000000000001 and current holding is 28
+Buy at price 9.12 for 1 units. Current cash is -264.3200000000001 and current holding is 29
+Buy at price 9.12 for 1 units. Current cash is -273.4400000000001 and current holding is 30
+Buy at price 9.14 for 1 units. Current cash is -282.5800000000001 and current holding is 31
+Buy at price 9.14 for 1 units. Current cash is -291.7200000000001 and current holding is 32
+Buy at price 9.14 for 1 units. Current cash is -300.86000000000007 and current holding is 33
+Buy at price 9.14 for 1 units. Current cash is -310.00000000000006 and current holding is 34
+Buy at price 9.13 for 1 units. Current cash is -319.13000000000005 and current holding is 35
+Buy at price 9.13 for 1 units. Current cash is -328.26000000000005 and current holding is 36
+Buy at price 9.13 for 1 units. Current cash is -337.39000000000004 and current holding is 37
+Buy at price 9.13 for 1 units. Current cash is -346.52000000000004 and current holding is 38
+Buy at price 9.13 for 1 units. Current cash is -355.65000000000003 and current holding is 39
+Buy at price 9.13 for 1 units. Current cash is -364.78000000000003 and current holding is 40
+Buy at price 9.13 for 1 units. Current cash is -373.91 and current holding is 41
+Buy at price 9.13 for 1 units. Current cash is -383.04 and current holding is 42
+Buy at price 9.13 for 1 units. Current cash is -392.17 and current holding is 43
+Buy at price 9.13 for 1 units. Current cash is -401.3 and current holding is 44
+Buy at price 9.13 for 1 units. Current cash is -410.43 and current holding is 45
+Buy at price 9.13 for 1 units. Current cash is -419.56 and current holding is 46
+Buy at price 9.14 for 1 units. Current cash is -428.7 and current holding is 47
+Buy at price 9.14 for 1 units. Current cash is -437.84 and current holding is 48
+Buy at price 9.14 for 1 units. Current cash is -446.97999999999996 and current holding is 49
+Buy at price 9.14 for 1 units. Current cash is -456.11999999999995 and current holding is 50
+Buy at price 9.14 for 1 units. Current cash is -465.25999999999993 and current holding is 51
+Buy at price 9.14 for 1 units. Current cash is -474.3999999999999 and current holding is 52
+Buy at price 9.14 for 1 units. Current cash is -483.5399999999999 and current holding is 53
+Buy at price 9.14 for 1 units. Current cash is -492.6799999999999 and current holding is 54
+Buy at price 9.14 for 1 units. Current cash is -501.8199999999999 and current holding is 55
+Buy at price 9.14 for 1 units. Current cash is -510.95999999999987 and current holding is 56
+Buy at price 9.14 for 1 units. Current cash is -520.0999999999999 and current holding is 57
+Buy at price 9.17 for 1 units. Current cash is -529.2699999999999 and current holding is 58
+Buy at price 9.16 for 1 units. Current cash is -538.4299999999998 and current holding is 59
+Buy at price 9.16 for 1 units. Current cash is -547.5899999999998 and current holding is 60
+Buy at price 9.17 for 1 units. Current cash is -556.7599999999998 and current holding is 61
+Buy at price 9.15 for 1 units. Current cash is -565.9099999999997 and current holding is 62
+Buy at price 9.15 for 1 units. Current cash is -575.0599999999997 and current holding is 63
+Buy at price 9.14 for 1 units. Current cash is -584.1999999999997 and current holding is 64
+Buy at price 9.14 for 1 units. Current cash is -593.3399999999997 and current holding is 65
+Buy at price 9.15 for 1 units. Current cash is -602.4899999999997 and current holding is 66
+Buy at price 9.14 for 1 units. Current cash is -611.6299999999997 and current holding is 67
+Buy at price 9.15 for 1 units. Current cash is -620.7799999999996 and current holding is 68
+Buy at price 9.15 for 1 units. Current cash is -629.9299999999996 and current holding is 69
+Buy at price 9.15 for 1 units. Current cash is -639.0799999999996 and current holding is 70
+Buy at price 9.15 for 1 units. Current cash is -648.2299999999996 and current holding is 71
+Buy at price 9.15 for 1 units. Current cash is -657.3799999999995 and current holding is 72
+Buy at price 9.15 for 1 units. Current cash is -666.5299999999995 and current holding is 73
+Buy at price 9.15 for 1 units. Current cash is -675.6799999999995 and current holding is 74
+Buy at price 9.15 for 1 units. Current cash is -684.8299999999995 and current holding is 75
+Buy at price 9.19 for 1 units. Current cash is -694.0199999999995 and current holding is 76
+Buy at price 9.17 for 1 units. Current cash is -703.1899999999995 and current holding is 77
+Buy at price 9.19 for 1 units. Current cash is -712.3799999999995 and current holding is 78
+Buy at price 9.17 for 1 units. Current cash is -721.5499999999995 and current holding is 79
+Buy at price 9.19 for 1 units. Current cash is -730.7399999999996 and current holding is 80
+Buy at price 9.19 for 1 units. Current cash is -739.9299999999996 and current holding is 81
+Buy at price 9.19 for 1 units. Current cash is -749.1199999999997 and current holding is 82
+Buy at price 9.23 for 1 units. Current cash is -758.3499999999997 and current holding is 83
+Buy at price 9.23 for 1 units. Current cash is -767.5799999999997 and current holding is 84
+Buy at price 9.17 for 1 units. Current cash is -776.7499999999997 and current holding is 85
+Buy at price 9.21 for 1 units. Current cash is -785.9599999999997 and current holding is 86
+Buy at price 9.17 for 1 units. Current cash is -795.1299999999997 and current holding is 87
+Buy at price 9.18 for 1 units. Current cash is -804.3099999999996 and current holding is 88
+Buy at price 9.17 for 1 units. Current cash is -813.4799999999996 and current holding is 89
+Buy at price 9.17 for 1 units. Current cash is -822.6499999999995 and current holding is 90
+Buy at price 9.15 for 1 units. Current cash is -831.7999999999995 and current holding is 91
+Buy at price 9.15 for 1 units. Current cash is -840.9499999999995 and current holding is 92
+Buy at price 9.15 for 1 units. Current cash is -850.0999999999995 and current holding is 93
+Buy at price 9.16 for 1 units. Current cash is -859.2599999999994 and current holding is 94
+Buy at price 9.18 for 1 units. Current cash is -868.4399999999994 and current holding is 95
+Buy at price 9.16 for 1 units. Current cash is -877.5999999999993 and current holding is 96
+Buy at price 9.16 for 1 units. Current cash is -886.7599999999993 and current holding is 97
+Buy at price 9.16 for 1 units. Current cash is -895.9199999999993 and current holding is 98
+Buy at price 9.16 for 1 units. Current cash is -905.0799999999992 and current holding is 99
+Buy at price 9.16 for 1 units. Current cash is -914.2399999999992 and current holding is 100
+Buy at price 9.16 for 1 units. Current cash is -923.3999999999992 and current holding is 101
+Buy at price 9.16 for 1 units. Current cash is -932.5599999999991 and current holding is 102
+Buy at price 9.16 for 1 units. Current cash is -941.7199999999991 and current holding is 103
+Buy at price 9.16 for 1 units. Current cash is -950.8799999999991 and current holding is 104
+Buy at price 9.16 for 1 units. Current cash is -960.039999999999 and current holding is 105
+Buy at price 9.16 for 1 units. Current cash is -969.199999999999 and current holding is 106
+Buy at price 9.16 for 1 units. Current cash is -978.359999999999 and current holding is 107
+Buy at price 9.16 for 1 units. Current cash is -987.519999999999 and current holding is 108
+Buy at price 9.16 for 1 units. Current cash is -996.6799999999989 and current holding is 109
+Buy at price 9.16 for 1 units. Current cash is -1005.8399999999989 and current holding is 110
+Buy at price 9.16 for 1 units. Current cash is -1014.9999999999989 and current holding is 111
+Buy at price 9.16 for 1 units. Current cash is -1024.159999999999 and current holding is 112
+Buy at price 9.16 for 1 units. Current cash is -1033.319999999999 and current holding is 113
+Buy at price 9.16 for 1 units. Current cash is -1042.479999999999 and current holding is 114
+Buy at price 9.16 for 1 units. Current cash is -1051.6399999999992 and current holding is 115
+Buy at price 9.16 for 1 units. Current cash is -1060.7999999999993 and current holding is 116
+Buy at price 9.16 for 1 units. Current cash is -1069.9599999999994 and current holding is 117
+Buy at price 9.16 for 1 units. Current cash is -1079.1199999999994 and current holding is 118
+Buy at price 9.16 for 1 units. Current cash is -1088.2799999999995 and current holding is 119
+Buy at price 9.16 for 1 units. Current cash is -1097.4399999999996 and current holding is 120
+Buy at price 9.16 for 1 units. Current cash is -1106.5999999999997 and current holding is 121
+Buy at price 9.16 for 1 units. Current cash is -1115.7599999999998 and current holding is 122
+Buy at price 9.16 for 1 units. Current cash is -1124.9199999999998 and current holding is 123
+Buy at price 9.16 for 1 units. Current cash is -1134.08 and current holding is 124
+Buy at price 9.16 for 1 units. Current cash is -1143.24 and current holding is 125
+Buy at price 9.16 for 1 units. Current cash is -1152.4 and current holding is 126
+Buy at price 9.16 for 1 units. Current cash is -1161.5600000000002 and current holding is 127
+Buy at price 9.15 for 1 units. Current cash is -1170.7100000000003 and current holding is 128
+Buy at price 9.15 for 1 units. Current cash is -1179.8600000000004 and current holding is 129
+Buy at price 9.16 for 1 units. Current cash is -1189.0200000000004 and current holding is 130
+Buy at price 9.16 for 1 units. Current cash is -1198.1800000000005 and current holding is 131
+Buy at price 9.16 for 1 units. Current cash is -1207.3400000000006 and current holding is 132
+Buy at price 9.15 for 1 units. Current cash is -1216.4900000000007 and current holding is 133
+Buy at price 9.15 for 1 units. Current cash is -1225.6400000000008 and current holding is 134
+Buy at price 9.15 for 1 units. Current cash is -1234.7900000000009 and current holding is 135
+Buy at price 9.2 for 1 units. Current cash is -1243.990000000001 and current holding is 136
+Buy at price 9.14 for 1 units. Current cash is -1253.130000000001 and current holding is 137
+Buy at price 9.14 for 1 units. Current cash is -1262.2700000000011 and current holding is 138
+Buy at price 9.14 for 1 units. Current cash is -1271.4100000000012 and current holding is 139
+Buy at price 9.15 for 1 units. Current cash is -1280.5600000000013 and current holding is 140
+Buy at price 9.14 for 1 units. Current cash is -1289.7000000000014 and current holding is 141
+Buy at price 9.19 for 1 units. Current cash is -1298.8900000000015 and current holding is 142
+Buy at price 9.19 for 1 units. Current cash is -1308.0800000000015 and current holding is 143
+Buy at price 9.19 for 1 units. Current cash is -1317.2700000000016 and current holding is 144
+Buy at price 9.19 for 1 units. Current cash is -1326.4600000000016 and current holding is 145
+Buy at price 9.19 for 1 units. Current cash is -1335.6500000000017 and current holding is 146
+Buy at price 9.19 for 1 units. Current cash is -1344.8400000000017 and current holding is 147
+Buy at price 9.19 for 1 units. Current cash is -1354.0300000000018 and current holding is 148
+Buy at price 9.19 for 1 units. Current cash is -1363.2200000000018 and current holding is 149
+Buy at price 9.18 for 1 units. Current cash is -1372.400000000002 and current holding is 150
+Buy at price 9.17 for 1 units. Current cash is -1381.570000000002 and current holding is 151
+Buy at price 9.16 for 1 units. Current cash is -1390.730000000002 and current holding is 152
+Buy at price 9.16 for 1 units. Current cash is -1399.8900000000021 and current holding is 153
+Buy at price 9.18 for 1 units. Current cash is -1409.0700000000022 and current holding is 154
+Buy at price 9.17 for 1 units. Current cash is -1418.2400000000023 and current holding is 155
+Buy at price 9.17 for 1 units. Current cash is -1427.4100000000024 and current holding is 156
+Buy at price 9.18 for 1 units. Current cash is -1436.5900000000024 and current holding is 157
+Buy at price 9.21 for 1 units. Current cash is -1445.8000000000025 and current holding is 158
+Buy at price 9.2 for 1 units. Current cash is -1455.0000000000025 and current holding is 159
+Buy at price 9.2 for 1 units. Current cash is -1464.2000000000025 and current holding is 160
+Buy at price 9.21 for 1 units. Current cash is -1473.4100000000026 and current holding is 161
+Buy at price 9.18 for 1 units. Current cash is -1482.5900000000026 and current holding is 162
+Buy at price 9.17 for 1 units. Current cash is -1491.7600000000027 and current holding is 163
+Buy at price 9.17 for 1 units. Current cash is -1500.9300000000028 and current holding is 164
+Buy at price 9.18 for 1 units. Current cash is -1510.1100000000029 and current holding is 165
+Buy at price 9.16 for 1 units. Current cash is -1519.270000000003 and current holding is 166
+Buy at price 9.21 for 1 units. Current cash is -1528.480000000003 and current holding is 167
+Buy at price 9.18 for 1 units. Current cash is -1537.660000000003 and current holding is 168
+Buy at price 9.15 for 1 units. Current cash is -1546.8100000000031 and current holding is 169
+Buy at price 9.21 for 1 units. Current cash is -1556.0200000000032 and current holding is 170
+Buy at price 9.17 for 1 units. Current cash is -1565.1900000000032 and current holding is 171
+Buy at price 9.17 for 1 units. Current cash is -1574.3600000000033 and current holding is 172
+Buy at price 9.18 for 1 units. Current cash is -1583.5400000000034 and current holding is 173
+Buy at price 9.18 for 1 units. Current cash is -1592.7200000000034 and current holding is 174
+Buy at price 9.19 for 1 units. Current cash is -1601.9100000000035 and current holding is 175
+Buy at price 9.17 for 1 units. Current cash is -1611.0800000000036 and current holding is 176
+Buy at price 9.15 for 1 units. Current cash is -1620.2300000000037 and current holding is 177
+Buy at price 9.16 for 1 units. Current cash is -1629.3900000000037 and current holding is 178
+Buy at price 9.16 for 1 units. Current cash is -1638.5500000000038 and current holding is 179
+Buy at price 9.15 for 1 units. Current cash is -1647.700000000004 and current holding is 180
+Buy at price 9.15 for 1 units. Current cash is -1656.850000000004 and current holding is 181
+Buy at price 9.15 for 1 units. Current cash is -1666.000000000004 and current holding is 182
+Buy at price 9.15 for 1 units. Current cash is -1675.1500000000042 and current holding is 183
+Buy at price 9.19 for 1 units. Current cash is -1684.3400000000042 and current holding is 184
+Buy at price 9.19 for 1 units. Current cash is -1693.5300000000043 and current holding is 185
+Buy at price 9.16 for 1 units. Current cash is -1702.6900000000044 and current holding is 186
+Buy at price 9.18 for 1 units. Current cash is -1711.8700000000044 and current holding is 187
+Buy at price 9.18 for 1 units. Current cash is -1721.0500000000045 and current holding is 188
+Buy at price 9.18 for 1 units. Current cash is -1730.2300000000046 and current holding is 189
+Buy at price 9.18 for 1 units. Current cash is -1739.4100000000046 and current holding is 190
+Buy at price 9.19 for 1 units. Current cash is -1748.6000000000047 and current holding is 191
+Buy at price 9.19 for 1 units. Current cash is -1757.7900000000047 and current holding is 192
+Buy at price 9.18 for 1 units. Current cash is -1766.9700000000048 and current holding is 193
+Buy at price 9.21 for 1 units. Current cash is -1776.1800000000048 and current holding is 194
+Buy at price 9.18 for 1 units. Current cash is -1785.360000000005 and current holding is 195
+Buy at price 9.17 for 1 units. Current cash is -1794.530000000005 and current holding is 196
+Buy at price 9.16 for 1 units. Current cash is -1803.690000000005 and current holding is 197
+Buy at price 9.15 for 1 units. Current cash is -1812.8400000000051 and current holding is 198
+Buy at price 9.14 for 1 units. Current cash is -1821.9800000000052 and current holding is 199
+Buy at price 9.14 for 1 units. Current cash is -1831.1200000000053 and current holding is 200
+Liquidate all at price 9.13 for 200 units. Current cash is -5.1200000000051205

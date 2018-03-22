@@ -1,7 +1,7 @@
 import numpy as np
 import pdb
 
-def execution(full_test_data, full_test_labels, max_holdings=100, unit=1, tick_increment=0.00):
+def execution(full_test_data, full_test_labels, max_holdings=100, unit=1, tick_increment=0.01):
 	cash = 0
 	position = 0
 	d = {}

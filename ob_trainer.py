@@ -74,7 +74,7 @@ def train_one_day(limit_order_filename, feature_filename, event_time, label_type
     # max_info_indices = feature_selection(selected_data, selected_labels)
     # selected_data = selected_data[:, max_info_indices]
     C = [1, 1e1, 1e2, 1e3, 1e4, 1e5]
-    G = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8]
+    G = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]
     # optimal 5e4, 1e-7
     for c in C:
         for g in G:
@@ -86,7 +86,7 @@ def train_one_day(limit_order_filename, feature_filename, event_time, label_type
     test_data = features[idx:]
     test_labels = labels[idx:]
     cash = execution_strategy.execution(full_test_data=test_data, full_test_labels=test_labels,
-                                        max_holdings=200, unit=1, tick_increment=0.01)
+                                        max_holdings=200, unit=1, tick_increment=1)
 
 
 def extract_limit_order_book(limit_order_filename, feature_filename, event_time,
