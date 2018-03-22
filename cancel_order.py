@@ -1,4 +1,5 @@
 import pandas as pd
+import  sys
 import numpy as np
 import os
 import pdb
@@ -55,4 +56,4 @@ def get_cancel_order(order_filename):
 
 
 if __name__ == '__main__':
-    get_cancel_order('PN_Order_Raw_080116.xlsx')
+    get_cancel_order("PN_Order_Raw_" + sys.argv[1] + ".xlsx")

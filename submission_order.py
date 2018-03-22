@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 import os
 
 
@@ -32,4 +33,4 @@ def get_submission_order(order_filename):
 
 
 if __name__ == '__main__':
-    get_submission_order("PN_Order_Raw_080116.xlsx")
+    get_submission_order("PN_Order_Raw_" + sys.argv[1] + ".xlsx")
