@@ -97,6 +97,7 @@ class FeatureExtractor:
         """Extract basic set."""
         limit_book_indices = np.array(self.delimiter_indices)[self.indices].tolist()
         assert(len(limit_book_indices) > 0)
+        timestamps_str = []
         timestamps = []
         basic_set = []
         mid_prices = []
