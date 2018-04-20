@@ -8,11 +8,11 @@ import pdb
 
 class FeatureExtractor:
 
-    def __init__(self, limit_order_filename,
+    def __init__(self, limit_order_filenames,
                  trd_order_filename, cancel_order_filename,
                  submission_filename, feature_filename, event_time,
                  time_interval, n_level):
-        self.limit_order_filename = limit_order_filename
+        self.limit_order_filenames = limit_order_filenames
         self.trd_order_filename = trd_order_filename
         self.cancel_order_filename = cancel_order_filename
         self.submission_filename = submission_filename
@@ -27,7 +27,12 @@ class FeatureExtractor:
     def extract_features(self):
         """Extract features from limit order book."""
         if not os.path.isfile(self.feature_filename):
-            self.limit_order_df = pd.read_excel(self.limit_order_filename)
+            for limit_order_filename in self.limit_order_filenames:
+                if self.limit_order_df is None:
+                    self.limit_order_df = pd.read_excel(limit_order_filename)
+                else:
+                    df = pd.read_excel(limit_order_filename)
+                    self.limit_order_df.append(df)
             self.delimiter_indices = self.get_delimiter_indices()
             if self.event_time == 'E':
                 self.indices = range(0, len(self.delimiter_indices))

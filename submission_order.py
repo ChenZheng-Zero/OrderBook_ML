@@ -21,10 +21,10 @@ def detect_submission(value):
     return submission_df
 
 
-def get_submission_order(order_filename):
+def get_submission_order(date):
     """Get submission orders from raw data."""
-    src_path = os.path.join('../PN_0816/', order_filename)
-    tgt_path = src_path.replace('Order_Raw', 'SUB')
+    src_path = os.path.join("../GOOG_0817/", "GOOG_" + date + ".xlsx")
+    tgt_path = '../GOOG_0817/GOOG_SUB_' + date + ".xlsx"
 
     raw_data = pd.read_excel(src_path)
     data = raw_data.groupby(['ORDER_ID'], as_index=False)
@@ -33,4 +33,4 @@ def get_submission_order(order_filename):
 
 
 if __name__ == '__main__':
-    get_submission_order("PN_Order_Raw_" + sys.argv[1] + ".xlsx")
+    get_submission_order(sys.argv[1])

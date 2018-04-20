@@ -29,13 +29,14 @@ def merge_cancel(value):
     return cancel_merge_df
 
 
-def get_cancel_order(order_filename):
+def get_cancel_order(date):
     """
     get cancelled orders from 'order_filename', save these orders in tgt_path
     """
-    src_path = os.path.join('../PN_0816/'+order_filename)
-    tgt_path = os.path.join('../PN_0816/'+order_filename.replace('Raw', 'Cancel'))
-    trd_path = os.path.join('../PN_0816/'+order_filename.replace('Order_Raw', 'TRD'))
+
+    src_path = os.path.join("../GOOG_0817/", "GOOG_" + date + ".xlsx")
+    tgt_path = os.path.join("../GOOG_0817/", "GOOG_Order_Cancel_" + date + ".xlsx")
+    trd_path = os.path.join('../GOOG_0817/', "GOOG_TRD_" + date + ".xlsx")
 
     example = pd.read_excel(src_path)
     trade = pd.read_excel(trd_path).reindex(columns=['Time', 'SIZE', 'PRICE']).set_index(keys=['Time', 'PRICE'])
@@ -56,4 +57,4 @@ def get_cancel_order(order_filename):
 
 
 if __name__ == '__main__':
-    get_cancel_order("PN_Order_Raw_" + sys.argv[1] + ".xlsx")
+    get_cancel_order(sys.argv[1])

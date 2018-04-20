@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 
-def get_mid_spread_labels(filename, threshold=0.3):
+def get_mid_spread_labels(filename, output_filename, threshold=0.3):
     df = pd.read_json(filename, orient="records", lines="True")
     timestamps = df["timestamps"].tolist()
     basic_set = df["basic_set"].tolist()
@@ -22,8 +22,7 @@ def get_mid_spread_labels(filename, threshold=0.3):
             mid_spread_label = int((mid_prices[i+1] - mid_prices[i])/(spread/2) > threshold)
         mid_spread_labels.append(mid_spread_label)
 
-    new_filename = filename[:-5] + "_midspread_" + str(threshold) + ".json"
-    save_feature_json(new_filename, timestamps[:-1], basic_set[:-1],
+    save_feature_json(output_filename, timestamps[:-1], basic_set[:-1],
                       time_insensitive_set[:-1], time_sensitive_set[:-1],
                       mid_price_labels[:-1], spread_crossing_labels[:-1],
                       mid_spread_labels, mid_prices[:-1], max_mid_prices[:-1])
@@ -55,7 +54,8 @@ def save_feature_json(feature_filename, timestamps, basic_set,
 
 
 if __name__ == '__main__':
-    files = ["../output_zheng/" + file for file in os.listdir("../output_zheng/") if file.endswith("E_10.json")]
+    files = ["../output_zheng/" + file for file in os.listdir("../output_zheng/") if file.endswith("E.json")]
     for filename in files:
         for threshold in [0.25, 0.5, 0.75, 1]:
-            get_mid_spread_labels(filename, threshold=threshold)
+            output_filename = filename[:-5] + "_midspread_" + str(threshold) + ".json"
+            get_mid_spread_labels(filename, output_filename, threshold=threshold)
