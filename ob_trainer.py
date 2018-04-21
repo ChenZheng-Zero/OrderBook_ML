@@ -22,7 +22,7 @@ def train_order_books(input_dir, stock, dates, event_time, label_type,
         print("Limit order books: ", limit_order_filenames)
         limit_order_filename = os.path.join(input_dir, stock + "_OB_" + date + ".xlsx")
         trd_order_filename = os.path.join(input_dir, stock + "_TRD_" + date + ".xlsx")
-        cancel_order_filename = os.path.join(input_dir, stock + "_Order_Cancel_" + date + ".xlsx")
+        cancel_order_filename = os.path.join(input_dir, stock + "_Cancel_" + date + ".xlsx")
         submission_filename = os.path.join(input_dir, stock + "_SUB_" + date + ".xlsx")
         feature_filename = "../output_zheng/" + stock + "_" + date + "_" + event_time + ".json"
 

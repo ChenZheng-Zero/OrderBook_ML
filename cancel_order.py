@@ -35,7 +35,7 @@ def get_cancel_order(date):
     """
 
     src_path = os.path.join("../GOOG_0817/", "GOOG_" + date + ".xlsx")
-    tgt_path = os.path.join("../GOOG_0817/", "GOOG_Order_Cancel_" + date + ".xlsx")
+    tgt_path = os.path.join("../GOOG_0817/", "GOOG_Cancel_" + date + ".xlsx")
     trd_path = os.path.join('../GOOG_0817/', "GOOG_TRD_" + date + ".xlsx")
 
     example = pd.read_excel(src_path)

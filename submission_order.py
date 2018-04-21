@@ -24,7 +24,7 @@ def detect_submission(value):
 def get_submission_order(date):
     """Get submission orders from raw data."""
     src_path = os.path.join("../GOOG_0817/", "GOOG_" + date + ".xlsx")
-    tgt_path = '../GOOG_0817/GOOG_SUB_' + date + ".xlsx"
+    tgt_path = os.path.join("../GOOG_0817/", "GOOG_SUB_" + date + ".xlsx")
 
     raw_data = pd.read_excel(src_path)
     data = raw_data.groupby(['ORDER_ID'], as_index=False)
