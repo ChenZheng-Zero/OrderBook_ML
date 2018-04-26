@@ -2,15 +2,16 @@ from utils import time_to_int, int_to_time
 import numpy as np
 import os
 import pandas as pd
+import bisect
 import pdb
 
 
 class FeatureExtractor:
 
-    def __init__(self, limit_order_filename, trd_filename, cancel_order_filename,
+    def __init__(self, limit_order_filenames, trd_filename, cancel_order_filename,
                  submission_filename, feature_filename, event_time,
                  time_interval, n_level):
-        self.limit_order_filename = limit_order_filename
+        self.limit_order_filenames = limit_order_filenames
         self.trd_filename = trd_filename
         self.cancel_order_filename = cancel_order_filename
         self.submission_filename = submission_filename
@@ -26,9 +27,15 @@ class FeatureExtractor:
     def extract_features(self):
         """Extract features from limit order book."""
         if not os.path.isfile(self.feature_filename):
-            self.limit_order_df = pd.read_excel(self.limit_order_filename)
+            for limit_order_filename in self.limit_order_filenames:
+                if self.limit_order_df is None:
+                    self.limit_order_df = pd.read_excel(limit_order_filename)
+                else:
+                    df = pd.read_excel(limit_order_filename)
+                    self.limit_order_df.append(df)
+                    
             self.trd_df = pd.read_excel(self.trd_filename).sort_values('Time').reset_index()
-            
+
             self.delimiter_indices = self.get_delimiter_indices()
             if self.event_time == 'E':
                 self.indices = range(0, len(self.delimiter_indices))
@@ -42,21 +49,63 @@ class FeatureExtractor:
             time_insensitive_set = self.extract_time_insensitive_set(basic_set)
             time_sensitive_set = self.extract_time_sensitive_set(timestamps)
             self.save_feature_json(self.feature_filename, timestamps, basic_set,
-                                   time_insensitive_set, mid_price_labels, spread_crossing_labels, mid_prices, max_mid_prices)
+                                   time_insensitive_set, time_sensitive_set,
+                                   mid_price_labels, spread_crossing_labels, mid_prices, max_mid_prices)
 
         df = pd.read_json(self.feature_filename, orient="records", lines="True", convert_dates = False)
         timestamps = df["timestamps"].tolist()
         basic_set = df["basic_set"].tolist()
         time_insensitive_set = df["time_insensitive_set"].tolist()
+        time_sensitive_set = df["time_sensitive_set"].tolist()
         mid_price_labels = df["mid_price_labels"].tolist()
         spread_crossing_labels = df["spread_crossing_labels"].tolist()
         return np.array(timestamps), np.array(basic_set), \
-            np.array(time_insensitive_set), np.array(mid_price_labels), np.array(spread_crossing_labels)
+            np.array(time_insensitive_set), np.array(time_sensitive_set), \
+            np.array(mid_price_labels), np.array(spread_crossing_labels)
+
+    def extract_time_sensitive_set(self, feature_timestamps, delta_t=1000, delta_T=5000):
+        """Extract time sensitive set."""
+        subms_buy_timestamps = self.get_order_timestamp(self.submission_filename, buy_sell_flag=0)
+        subms_sell_timestamps = self.get_order_timestamp(self.submission_filename, buy_sell_flag=1)
+        cancel_buy_timestamps = self.get_order_timestamp(self.cancel_order_filename, buy_sell_flag=0)
+        cancel_sell_timestamps = self.get_order_timestamp(self.cancel_order_filename, buy_sell_flag=1)
+        trd_buy_timestamps = self.get_order_timestamp(self.trd_filename, buy_sell_flag=0)
+        trd_sell_timestamps = self.get_order_timestamp(self.trd_filename, buy_sell_flag=1)
+        order_timestamps = [subms_buy_timestamps, subms_sell_timestamps, cancel_buy_timestamps, cancel_sell_timestamps,
+                            trd_buy_timestamps, trd_sell_timestamps]
+        delta_t_list = [delta_t] * len(order_timestamps)
+        delta_T_list = [delta_T] * len(order_timestamps)
+        time_sensitive_set = []
+        for timestamp in feature_timestamps:
+            curr_timestamp_list = [timestamp] * len(order_timestamps)
+            v6 = list(map(self.get_order_num, order_timestamps, curr_timestamp_list, delta_t_list))
+            v6_T = list(map(self.get_order_num, order_timestamps, curr_timestamp_list, delta_T_list))
+            v7 = [v6[i] > v6_T[i] for i in range(len(v6))]
+            time_sensitive_set.append(v6 + v7)
+        return time_sensitive_set
+
+    @staticmethod
+    def get_order_num(order_timestamps, cur_timestamp, delta_time):
+        left = bisect.bisect_left(order_timestamps, cur_timestamp - delta_time)
+        right = bisect.bisect_right(order_timestamps, cur_timestamp)
+        return (right - left)/delta_time
+
+    @staticmethod
+    def get_order_timestamp(order_filename, buy_sell_flag):
+        """Get order book time stamps in integer."""
+        df = pd.read_excel(order_filename)
+        order_timestamps = []
+        for i in range(len(df["Time"])):
+            if df["BUY_SELL_FLAG"][i] == buy_sell_flag:
+                order_timestamps.append(time_to_int(df["Time"][i]))
+        order_timestamps.sort()
+        return order_timestamps
 
     def extract_basic_set(self):
         """Extract basic set."""
         limit_book_indices = np.array(self.delimiter_indices)[self.indices].tolist()
         assert(len(limit_book_indices) > 0)
+        timestamps_str = []
         timestamps = []
         basic_set = []
         mid_prices = []
@@ -298,14 +347,17 @@ class FeatureExtractor:
 
     @staticmethod
     def save_feature_json(feature_filename, timestamps, basic_set,
-                          time_insensitive_set, mid_price_labels, spread_crossing_labels, mid_prices, max_mid_prices):
+                          time_insensitive_set, time_sensitive_set,
+                          mid_price_labels, spread_crossing_labels, mid_prices, max_mid_prices):
         """Save the json."""
         feature_dict = {"timestamps": timestamps, "basic_set": basic_set,
                         "time_insensitive_set": time_insensitive_set,
+                        "time_sensitive_set": time_sensitive_set,
                         "mid_price_labels": mid_price_labels, "spread_crossing_labels": spread_crossing_labels,
                         "mid_prices": mid_prices, "max_mid_prices": max_mid_prices}
         df = pd.DataFrame(data=feature_dict, columns=["timestamps", "basic_set",
                                                       "time_insensitive_set",
+                                                      "time_sensitive_set",
                                                       "mid_price_labels", "spread_crossing_labels",
                                                       "mid_prices", "max_mid_prices"])
         df.to_json(path_or_buf=feature_filename, orient="records", lines=True)

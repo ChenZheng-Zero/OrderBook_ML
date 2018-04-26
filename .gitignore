@@ -1,3 +1,4 @@
 .idea/
 OB_ML.iml
 __pycache__/
+*.pyc

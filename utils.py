@@ -1,5 +1,6 @@
 from datetime import datetime
 import time
+import bisect
 
 
 def extract_date_from_filepath(filepath):
