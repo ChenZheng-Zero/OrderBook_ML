@@ -1,4 +1,4 @@
-from utils import time_to_int
+from utils import time_to_int, int_to_time
 import numpy as np
 import os
 import pandas as pd
@@ -7,10 +7,15 @@ import pdb
 
 class FeatureExtractor:
 
-    def __init__(self, limit_order_filename, feature_filename, event_time,
+    def __init__(self, limit_order_filename, trd_filename, cancel_order_filename,
+                 submission_filename, feature_filename, event_time,
                  time_interval, n_level):
         self.limit_order_filename = limit_order_filename
+        self.trd_filename = trd_filename
+        self.cancel_order_filename = cancel_order_filename
+        self.submission_filename = submission_filename
         self.limit_order_df = None
+        self.trd_df = None
         self.feature_filename = feature_filename
         self.event_time = event_time
         self.time_interval = time_interval
@@ -22,6 +27,8 @@ class FeatureExtractor:
         """Extract features from limit order book."""
         if not os.path.isfile(self.feature_filename):
             self.limit_order_df = pd.read_excel(self.limit_order_filename)
+            self.trd_df = pd.read_excel(self.trd_filename).sort_values('Time').reset_index()
+            
             self.delimiter_indices = self.get_delimiter_indices()
             if self.event_time == 'E':
                 self.indices = range(0, len(self.delimiter_indices))
@@ -33,10 +40,11 @@ class FeatureExtractor:
             spread_crossing_labels = self.get_spread_crossing_labels(np.array(basic_set)[:, 2], np.array(basic_set)[:, 0])
             # pdb.set_trace()
             time_insensitive_set = self.extract_time_insensitive_set(basic_set)
+            time_sensitive_set = self.extract_time_sensitive_set(timestamps)
             self.save_feature_json(self.feature_filename, timestamps, basic_set,
                                    time_insensitive_set, mid_price_labels, spread_crossing_labels, mid_prices, max_mid_prices)
 
-        df = pd.read_json(self.feature_filename, orient="records", lines="True")
+        df = pd.read_json(self.feature_filename, orient="records", lines="True", convert_dates = False)
         timestamps = df["timestamps"].tolist()
         basic_set = df["basic_set"].tolist()
         time_insensitive_set = df["time_insensitive_set"].tolist()
@@ -57,13 +65,14 @@ class FeatureExtractor:
             init_index = 0
             init_time = self.get_init_time(limit_book_indices)
 
+        trd_i = 0
         for i in limit_book_indices:
             # append the timestamp
             if self.event_time == 'E':
                 timestamps.append(time_to_int(self.limit_order_df["Time"][i+1]))
             else:
                 timestamps.append(init_time)
-
+            
             # append basic features       
             v1 = []
             for index in range(i + 1, i + 1 + self.n_level):
@@ -73,13 +82,48 @@ class FeatureExtractor:
                            self.limit_order_df["BID_SIZE"][index]])
             basic_set.append(np.array(v1).reshape(1, -1).tolist()[0])
 
-            # append mid-price of the snapshot
-            mid_price = (self.limit_order_df["ASK_PRICE"][i+1]\
-                    + self.limit_order_df["BID_PRICE"][i+1])/2
-            mid_prices.append(mid_price)
-            # print("The mid price at time {} with index {} is {}".format(init_time, i, mid_price))
+            # append mid-price (if a trade, trade price; else mid price of the snapshot)
+            is_trd = 0
+            while trd_i < self.trd_df.shape[0]-1 and time_to_int(self.trd_df['Time'][trd_i]) < timestamps[-1]:
+                trd_i = trd_i+1
 
-            # append the max mid-price till the snapshot
+            temp = trd_i
+            while trd_i < self.trd_df.shape[0]-1 and time_to_int(self.trd_df['Time'][trd_i]) == timestamps[-1]:
+                # incoming buy order transacted with an incumbent sell
+                if self.trd_df['PRICE'][trd_i] == basic_set[-2][0]:
+                    # partial transaction
+                    if self.trd_df['PRICE'][trd_i] == basic_set[-1][0] and self.trd_df['SIZE'][trd_i] == basic_set[-2][1]-basic_set[-1][1]:
+                        #print("partial sell transaction at time {} with price {}".format(int_to_time(timestamps[-1]), self.trd_df['PRICE'][trd_i]))
+                        is_trd = 1
+                        break
+                    # full transaction    
+                    elif self.trd_df['PRICE'][trd_i] != basic_set[-1][0] and self.trd_df['SIZE'][trd_i] == basic_set[-2][1]: 
+                        #print("full sell transaction at time {} with price {}".format(int_to_time(timestamps[-1]), self.trd_df['PRICE'][trd_i]))
+                        is_trd = 1
+                        break
+                # incoming sell order transacted with an incumbent buy
+                elif self.trd_df['PRICE'][trd_i] == basic_set[-2][2]:
+                    # partial transaction
+                    if self.trd_df['PRICE'][trd_i] == basic_set[-1][2] and self.trd_df['SIZE'][trd_i] == basic_set[-2][3]-basic_set[-1][3]:
+                        #print("partial buy transaction at time {} with price {}".format(int_to_time(timestamps[-1]), self.trd_df['PRICE'][trd_i]))
+                        is_trd = 1
+                        break
+                    # full transaction
+                    elif self.trd_df['PRICE'][trd_i] != basic_set[-1][2] and self.trd_df['SIZE'][trd_i] == basic_set[-2][3]: 
+                        #print("full buy transaction at time {} with price {}".format(int_to_time(timestamps[-1]), self.trd_df['PRICE'][trd_i]))
+                        is_trd = 1
+                        break
+                trd_i = trd_i+1
+
+            if is_trd == 1:
+                #pdb.set_trace()
+                mid_price = self.trd_df['PRICE'][trd_i]
+            else:
+                mid_price = (self.limit_order_df["ASK_PRICE"][i+1]\
+                        + self.limit_order_df["BID_PRICE"][i+1])/2
+            trd_i = temp
+
+            mid_prices.append(mid_price)
             max_mid_price = mid_price
 
             if self.event_time == 'T':
@@ -234,6 +278,8 @@ class FeatureExtractor:
         for i in range(0, len(mid_prices)):
             if max_mid_prices[i] - mid_prices[i] > 0:
                 gt.append(1)
+            elif max_mid_prices[i] - mid_prices[i] < 0:
+                gt.append(-1)
             else:
                 gt.append(0)
         return gt

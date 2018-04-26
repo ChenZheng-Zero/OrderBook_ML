@@ -15,3 +15,6 @@ def time_to_int(timestamp):
     current_time = int(time.mktime(date.timetuple())*1e3 + date.microsecond/1e3)
     return current_time
 
+def int_to_time(timestamp):
+	return datetime.fromtimestamp(timestamp / 1e3)
+
