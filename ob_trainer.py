@@ -1,93 +1,169 @@
 from pre_processor import get_samples_index
-import mid_spread_label
 import feature_extractor
 import execution_strategy
 import mm_strategy
 import numpy as np
 import svm_trainer
+import utils
+import datetime
+import time
+import bisect
+from sklearn import svm
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
 import os
 import pandas as pd
 import pdb
 
 
-def train_order_books(input_dir, stock, dates, event_time, label_type,
+def extract_features_from_order_books(input_dir, stock, dates, span_type, event_time, label_type,
                       time_interval=100, n_level=10):
+    timestamps = []
     basic_set = []
     time_insensitive_set = []
     time_sensitive_set = []
     labels = []
 
+    limit_order_filenames = []
     for date in dates:
-        limit_order_filenames = sorted([os.path.join(input_dir, file) for file in os.listdir(input_dir)
-                                        if "_OB_" + date in file])
-        print("Limit order books: ", limit_order_filenames)
         limit_order_filename = os.path.join(input_dir, stock + "_OB_" + date + ".xlsx")
-        trd_order_filename = os.path.join(input_dir, stock + "_TRD_" + date + ".xlsx")
-        cancel_order_filename = os.path.join(input_dir, stock + "_Cancel_" + date + ".xlsx")
-        submission_filename = os.path.join(input_dir, stock + "_SUB_" + date + ".xlsx")
-        feature_filename = "../output_zheng/" + stock + "_" + date + "_" + event_time + ".json"
+        limit_order_filenames.append(limit_order_filename)
 
-        if not os.path.isfile(feature_filename):
-            extractor = feature_extractor.FeatureExtractor(
-                limit_order_filenames=limit_order_filenames,
-                trd_filename=trd_order_filename,
-                cancel_order_filename=cancel_order_filename,
-                submission_filename=submission_filename,
-                feature_filename=feature_filename, event_time=event_time,
-                time_interval=time_interval, n_level=n_level)
-            extractor.extract_features()
-        threshold = 0.75
-        midspread_filename = feature_filename[:-5] + "_midspread_" + str(threshold) + ".json"
+    trd_order_filename = os.path.join(input_dir, stock + "_TRD_" + dates[0][:-1] + ".xlsx")
+    cancel_order_filename = os.path.join(input_dir, stock + "_Cancel_" + dates[0][:-1] + ".xlsx")
+    submission_filename = os.path.join(input_dir, stock + "_SUB_" + dates[0][:-1] + ".xlsx")
 
-        if not os.path.isfile(midspread_filename):
-            mid_spread_label.get_mid_spread_labels(feature_filename, midspread_filename, threshold=threshold)
+    feature_filename = "../output/" + stock + "_" + dates[0][:-1] + span_type + "_" + event_time + ".json"
 
-        # read features
-        df = pd.read_json(midspread_filename, orient="records", lines="True")
-        ob_basic_set = np.array(df["basic_set"].tolist())
-        ob_time_insensitive_set = np.array(df["time_insensitive_set"].tolist())
-        ob_time_sensitive_set = np.array(df["time_sensitive_set"].tolist())
-        if label_type == "mid":
-            ob_labels = np.array(df["mid_price_labels"].tolist())
-        elif label_type == "spread":
-            ob_labels = np.array(df["spread_crossing_labels"].tolist())
-        else:
-            ob_labels = np.array(df["mid_spread_labels"].tolist())
+    if not os.path.isfile(feature_filename):
+        extractor = feature_extractor.FeatureExtractor(
+            limit_order_filenames=limit_order_filenames,
+            trd_filename=trd_order_filename,
+            cancel_order_filename=cancel_order_filename,
+            submission_filename=submission_filename,
+            feature_filename=feature_filename, 
+            event_time=event_time,
+            time_interval=time_interval, 
+            n_level=n_level)
+        extractor.extract_features()
 
-        print("Order book {} has {} data points".format(limit_order_filename.split('/')[-1], len(ob_labels)))
-        basic_set.extend(ob_basic_set)
-        time_insensitive_set.extend(ob_time_insensitive_set)
-        time_sensitive_set.extend(ob_time_sensitive_set)
-        labels.extend(ob_labels)
+    #threshold = 0.75
+    #midspread_filename = feature_filename[:-5] + "_midspread_" + str(threshold) + ".json"
 
-    basic_set = np.array(basic_set)
-    time_insensitive_set = np.array(time_insensitive_set)
-    time_sensitive_set = np.array(time_sensitive_set)
-    labels = np.array(labels)
+    #if not os.path.isfile(midspread_filename):
+    #    mid_spread_label.get_mid_spread_labels(feature_filename, midspread_filename, threshold=threshold)
 
-    train_index, test_index, idx = get_samples_index(labels, split=0.25)
-    features = np.concatenate((basic_set, time_insensitive_set, time_sensitive_set), axis=1)
-    selected_train_data = features[train_index]
-    selected_train_labels = labels[train_index]
-    selected_test_data = features[test_index]
-    selected_test_labels = labels[test_index]
+    # read features
+    df = pd.read_json(feature_filename, orient="records", lines="True", convert_dates = False)
+    ob_timestamps = np.array(df["timestamps"].tolist())
+    ob_basic_set = np.array(df["basic_set"].tolist())
+    ob_time_insensitive_set = np.array(df["time_insensitive_set"].tolist())
+    ob_time_sensitive_set = np.transpose([0]*ob_basic_set.shape[0])
 
-    # max_info_indices = feature_selection(selected_data, selected_labels)
-    # selected_data = selected_data[:, max_info_indices]
-    C = [1e3, 1e4, 1e5]
-    G = [1e-5, 1e-6, 1e-7, 1e-8]
-    # optimal 5e4, 1e-7
-    # optimal 10000, 1e-8, accuracy 78%, precision 71%
-    for c in C:
-        for g in G:
-            print("SVM c = {}".format(c) + " g = {}".format(g))
-            score, model = svm_trainer.train_svm(train_data=selected_train_data, train_labels=selected_train_labels, \
-                                                 test_data=selected_test_data, test_labels=selected_test_labels, c=c, kernel='rbf', g=g)
+    # read labels
+    if float(label_type) == 0:
+        ob_labels = np.array(df["mid_price_labels"].tolist())[:, 0]
+    elif float(label_type) == 0.25:
+        ob_labels = np.array(df["mid_price_labels"].tolist())[:, 1]
+    elif float(label_type) == 0.5:
+        ob_labels = np.array(df["mid_price_labels"].tolist())[:, 2]
+    elif float(label_type) == 0.75:
+        ob_labels = np.array(df["mid_price_labels"].tolist())[:, 3]
+    else:
+        ob_labels = np.array(df["mid_price_labels"].tolist())[:, 4]
 
-    # execution strategy based on ground truth
-    test_data = features[idx:]
-    test_timestamp = timestamps[idx:]
-    test_labels = labels[idx:]
+    print("Order book {} has {} data points".format(limit_order_filename.split('/')[-1], len(ob_labels)))
+    timestamps.extend(ob_timestamps)
+    basic_set.extend(ob_basic_set)
+    time_insensitive_set.extend(ob_time_insensitive_set)
+    time_sensitive_set.extend(ob_time_sensitive_set)
+    labels.extend(ob_labels)
 
-    cash = mm_strategy.market_making(trd_filename = trd_filename, full_test_data=test_data, full_test_timestamp=test_timestamp, \
-        full_test_labels=test_labels, smart=True, max_holdings=200, unit=1, spread=0.01)       
+    return np.array(timestamps), np.array(basic_set), np.array(time_insensitive_set), np.array(time_sensitive_set), np.array(labels)
+    
+
+def train_model_test_strategy(timestamps, basic_set, time_insensitive_set, time_sensitive_set, feature_level, labels, dates):
+    if int(feature_level) == 1:
+        features = basic_set
+    elif int(feature_level) == 2:
+        features = np.concatenate((basic_set, time_insensitive_set), axis=1)
+    elif int(feature_level) == 3:
+        features = np.concatenate((basic_set, time_insensitive_set, time_sensitive_set), axis=1)
+
+    # get the initial time
+    init_time = datetime.datetime(utils.int_to_time(timestamps[0]).year, utils.int_to_time(timestamps[0]).month, \
+        utils.int_to_time(timestamps[0]).day, 9, 30, 0, 0)
+    init_time_int = int(time.mktime(init_time.timetuple())*1e3 + init_time.microsecond/1e3)
+
+    train_interval = 20
+    test_interval = 5
+    right = bisect.bisect_right(timestamps, init_time_int+(train_interval+test_interval)*60*1000 , lo=0, hi=len(timestamps))-1
+    mid = bisect.bisect_right(timestamps, init_time_int+train_interval*60*1000, lo=0, hi=right)-1
+    left = bisect.bisect_left(timestamps, init_time_int, lo=0, hi=mid)
+    if timestamps[left] != init_time_int:
+        left = left + 1
+
+    while init_time_int+(train_interval+test_interval)*60*1000 <= timestamps[-1]:
+        temp_labels = labels[left:mid]
+        train_index, val_index, idx = get_samples_index(temp_labels, split=0.25)
+        selected_train_data = features[train_index]
+        selected_train_labels = labels[train_index]
+        selected_val_data = features[val_index]
+        selected_val_labels = labels[val_index]
+
+        print("start training...")
+        # max_info_indices = feature_selection(selected_data, selected_labels)
+        # selected_data = selected_data[:, max_info_indices]
+        C = [1e3]
+        G = [1e-5, 1e-6, 1e-7, 1e-8]
+        acc = 0
+        res_model = []
+        for c in C:
+            for g in G:
+                print("SVM c = {}".format(c) + " g = {}".format(g))
+                score, model = svm_trainer.train_svm(train_data=selected_train_data, train_labels=selected_train_labels, \
+                                                 test_data=selected_val_data, test_labels=selected_val_labels, c=c, kernel='rbf', g=g)
+                if score > acc:
+                    acc = score
+                    res_model = model
+                print(score)
+        print("saving model...")
+
+        # execution strategy based on ground truth
+        print("testing...")
+        test_data = features[mid+1:right]
+        test_timestamp = timestamps[mid+1:right]
+        test_gt_labels = labels[mid+1:right]
+
+        test_pred_labels = res_model.predict(test_data)
+        accuracy = accuracy_score(test_gt_labels, test_pred_labels)
+        precision = precision_score(test_gt_labels, test_pred_labels, average=None)
+        cnf_matrix = confusion_matrix(test_gt_labels, test_pred_labels)
+        print("SVM accuracy is {}".format(accuracy))
+        print("SVM precision is {}".format(precision))
+        print("confusion matrix: ")
+        print(cnf_matrix)
+
+        print("testing strategy...")
+        trd_filename = os.path.join("../GOOG_0817/", "GOOG" + "_TRD_" + dates[0][:-1] + ".xlsx")
+        print("running the baseline mm strategy...")
+        baseline_cash = mm_strategy.market_making(trd_filename = trd_filename, full_test_data=test_data, full_test_timestamp=test_timestamp, \
+            full_test_labels=test_gt_labels, smart=False, max_holdings=200, unit=1, spread=0.01)
+        print("running the smart mm strategy based on prediction...")
+        pred_cash = mm_strategy.market_making(trd_filename = trd_filename, full_test_data=test_data, full_test_timestamp=test_timestamp, \
+            full_test_labels=test_pred_labels, smart=True, max_holdings=200, unit=1, spread=0.01)
+        print("running the smart mm strategy based on ground truth...")
+        gt_cash = mm_strategy.market_making(trd_filename = trd_filename, full_test_data=test_data, full_test_timestamp=test_timestamp, \
+            full_test_labels=test_gt_labels, smart=True, max_holdings=200, unit=1, spread=0.01)  
+
+        pdb.set_trace()
+        # update for next interval
+        init_time_int = init_time_int + test_interval*60*1000
+        left = bisect.bisect_left(timestamps, init_time_int, lo=left, hi=mid)
+        if timestamps[left] != init_time_int:
+            left = left + 1
+        mid = right
+        right = bisect.bisect_right(timestamps, init_time_int+(train_interval+test_interval)*60*1000 , lo=mid, hi=len(timestamps))-1
+
+

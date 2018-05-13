@@ -25,6 +25,7 @@ def market_making(trd_filename, full_test_data, full_test_timestamp, full_test_l
 		
 		# check transaction 
 		# a)check trades;
+		temp = trd_i
 		while trd_i < trades.shape[0]-1 and time_to_int(trades['Time'][trd_i]) == full_test_timestamp[i]:
 			if trades['BUY_SELL_FLAG'][trd_i] == 0 and trades['PRICE'][trd_i] >= sell:
 				#print("Sell at price {} with TRD at time {}. Current cash is {} and current holding is {}".format(sell, int_to_time(full_test_timestamp[i]), format(cash+sell, '.3f'), position-1))
@@ -35,6 +36,7 @@ def market_making(trd_filename, full_test_data, full_test_timestamp, full_test_l
 				src = "TRD"
 				buy_boolean = 1
 			trd_i = trd_i+1
+		trd_i = temp
 		# b)check orderbook 
 		if full_test_data[i][0] <= buy:
 			#print("Buy at price {} with OB at time {}. Current cash is {} and current holding is {}".format(buy, int_to_time(full_test_timestamp[i]), format(cash-buy, '.3f'), position+1))
@@ -57,30 +59,30 @@ def market_making(trd_filename, full_test_data, full_test_timestamp, full_test_l
 		# update market making orders
 		if round(full_test_data[i][0] - full_test_data[i][2], 3) >= 0.02 + spread:
 			if smart:
-				if full_test_labels[i] == 0 or full_test_labels[i] == -1:
-					buy = full_test_data[i][2]+0.01
-					sell = full_test_data[i][0]-0.01
-				else:
-					buy = full_test_data[i][2]+0.01
+				if full_test_labels[i] == 1:
+					buy = full_test_data[i][2]
+					sell = full_test_data[i][0]+0.01
+				elif full_test_labels[i] == 0:
+					buy = full_test_data[i][2]
 					sell = full_test_data[i][0]
-				#else:
-				#	buy = full_test_data[i][2]
-				#	sell = full_test_data[i][0]-0.01
+				else:
+					buy = full_test_data[i][2]-0.01
+					sell = full_test_data[i][0]
 			else:
-				buy = full_test_data[i][2] + 0.01
-				sell = full_test_data[i][0] - 0.01
+				buy = full_test_data[i][2]
+				sell = full_test_data[i][0]
 		else:
 			if full_test_data[i][0] > full_test_data[i][2]:
 				if smart:
-					if full_test_labels[i] == 0 or full_test_labels[i] == -1:
+					if full_test_labels[i] == 1:
+						buy = full_test_data[i][2]
+						sell = full_test_data[i][0]+0.01
+					elif full_test_labels[i] == 0:
 						buy = full_test_data[i][2]
 						sell = full_test_data[i][0]
 					else:
-						buy = full_test_data[i][2]
-						sell = full_test_data[i][0]+0.01
-					#else:
-					#	buy = full_test_data[i][2]-0.01
-					#	sell = full_test_data[i][0]
+						buy = full_test_data[i][2]-0.01
+						sell = full_test_data[i][0]
 				else:
 					buy = full_test_data[i][2]
 					sell = full_test_data[i][0]
@@ -99,6 +101,5 @@ def market_making(trd_filename, full_test_data, full_test_timestamp, full_test_l
 		cash = cash + position * full_test_data[i][2]
 	else:
 		cash = cash + position * full_test_data[i][0]
-	print(cash)
-	print(position)
+	print("The final cash is {}.".format(cash) + " The position before liquidating is {}".format(position))
 	return cash, position

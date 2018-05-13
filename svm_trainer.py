@@ -11,16 +11,17 @@ def train_svm(train_data, train_labels, test_data, test_labels, c=1.0, kernel="r
     X_test = test_data
     y_train = train_labels
     y_test = test_labels
+    
     # data preprocessing
     scaler = preprocessing.StandardScaler().fit(X_train)
     scaler.transform(X_train)
     scaler.transform(X_test)
 
-    clf = svm.SVC(C=c, kernel=kernel, gamma=g)
+    clf = svm.SVC(C=c, kernel=kernel, gamma=g, decision_function_shape='ovo')
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average=None)
     cnf_matrix = confusion_matrix(y_test, y_pred)
     print("SVM accuracy is {}".format(accuracy))
     print("SVM precision is {}".format(precision))

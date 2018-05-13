@@ -17,20 +17,26 @@ def get_samples_index(y, split = 0.2):
     for label in unique_labels:
         print("label {} has {}".format(label, len(label_indices[label])))
 
+    # find the imbalanced class    
+    nonzero_indices = []
+    for label in unique_labels:
+        if label != 0:
+            nonzero_indices = nonzero_indices + label_indices[label]
+    nonzero_indices = sorted(nonzero_indices)
 
-    selected_train_indices_one = label_indices[1][:int((1-split)*len(label_indices[1]))]
-    selected_test_indices_one = label_indices[1][int((1-split)*len(label_indices[1])):]
+    selected_train_indices_nonzero = nonzero_indices[:int((1-split)*len(nonzero_indices))]
+    selected_test_indices_nonzero = nonzero_indices[int((1-split)*len(nonzero_indices)):]
 
-    idx = bisect.bisect_left(label_indices[0], int((selected_train_indices_one[-1] + selected_test_indices_one[0])/2))
+    idx = bisect.bisect_left(label_indices[0], int((selected_train_indices_nonzero[-1] + selected_test_indices_nonzero[0])/2))
     train_indices_zero = label_indices[0][:idx]
     test_indices_zero = label_indices[0][idx:]
 
-    # selected_train_indices_zero = np.random.choice(train_indices_zero, len(selected_train_indices_one), replace=False)
-    selected_train_indices_zero = [train_indices_zero[i] for i in np.linspace(0, len(train_indices_zero), num=len(selected_train_indices_one), endpoint=False).astype(int)]
-    # selected_test_indices_zero = np.random.choice(test_indices_zero, len(selected_test_indices_one), replace=False)
-    selected_test_indices_zero = [test_indices_zero[i] for i in np.linspace(0, len(test_indices_zero), num=len(selected_test_indices_one), endpoint=False).astype(int)]
+    # selected_train_indices_zero = np.random.choice(train_indices_zero, len(selected_train_indices_nonzero), replace=False)
+    selected_train_indices_zero = [train_indices_zero[i] for i in np.linspace(0, len(train_indices_zero), num=len(selected_train_indices_nonzero)/2, endpoint=False).astype(int)]
+    # selected_test_indices_zero = np.random.choice(test_indices_zero, len(selected_test_indices_nonzero), replace=False)
+    selected_test_indices_zero = [test_indices_zero[i] for i in np.linspace(0, len(test_indices_zero), num=len(selected_test_indices_nonzero)/2, endpoint=False).astype(int)]
 
-    return sorted(np.concatenate((selected_train_indices_zero, selected_train_indices_one), axis=0)), sorted(np.concatenate((selected_test_indices_zero, selected_test_indices_one), axis=0)), label_indices[0][idx]
+    return sorted(np.concatenate((selected_train_indices_zero, selected_train_indices_nonzero), axis=0)), sorted(np.concatenate((selected_test_indices_zero, selected_test_indices_nonzero), axis=0)), label_indices[0][idx]
 
 
 def feature_selection(X, y):
