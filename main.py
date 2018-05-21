@@ -4,7 +4,7 @@ import os
 import pdb
 
 if __name__ == '__main__':
-    # python3 main.py ../PN_0816/ PN 081016,081116 W E midspread
+    # python3 main.py ../GOOG_0817/ GOOG $date A E $thresh 2 > ../results_zheng/GOOG_$date_$thresh_midspread.txt
     input_dir = sys.argv[1]
     stock = sys.argv[2]
     dates = sys.argv[3].replace(' ', '').split(',')

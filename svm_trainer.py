@@ -17,7 +17,7 @@ def train_svm(train_data, train_labels, test_data, test_labels, c=1.0, kernel="r
     scaler.transform(X_train)
     scaler.transform(X_test)
 
-    clf = svm.SVC(C=c, kernel=kernel, gamma=g, decision_function_shape='ovo')
+    clf = svm.SVC(C=c, kernel=kernel, gamma=g, decision_function_shape='ovo', class_weight="balanced")
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
