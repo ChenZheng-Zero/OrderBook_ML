@@ -1,4 +1,5 @@
 from pre_processor import get_samples_index
+from sklearn.model_selection import train_test_split
 import feature_extractor
 import execution_strategy
 import mm_strategy
@@ -106,12 +107,15 @@ def train_model_test_strategy(timestamps, basic_set, time_insensitive_set, time_
 
     while init_time_int+(train_interval+test_interval)*60*1000 <= timestamps[-1]:
         temp_labels = labels[left:mid]
-        train_index, val_index, idx = get_samples_index(temp_labels, split=0.25)
-        selected_train_data = features[train_index]
-        selected_train_labels = labels[train_index]
-        selected_val_data = features[val_index]
-        selected_val_labels = labels[val_index]
-
+        # train_index, val_index, idx = get_samples_index(temp_labels, split=0.25)
+        # selected_train_data = features[train_index]
+        # selected_train_labels = labels[train_index]
+        # selected_val_data = features[val_index]
+        # selected_val_labels = labels[val_index]
+        
+        selected_train_data, selected_val_data, selected_train_labels, selected_val_labels = \
+            train_test_split(features[left:mid], temp_labels, test_size=0.25, shuffle=False)
+        
         print("start training...")
         # max_info_indices = feature_selection(selected_data, selected_labels)
         # selected_data = selected_data[:, max_info_indices]
@@ -157,7 +161,7 @@ def train_model_test_strategy(timestamps, basic_set, time_insensitive_set, time_
         gt_cash = mm_strategy.market_making(trd_filename = trd_filename, full_test_data=test_data, full_test_timestamp=test_timestamp, \
             full_test_labels=test_gt_labels, smart=True, max_holdings=200, unit=1, spread=0.01)  
 
-        pdb.set_trace()
+        # pdb.set_trace()
         # update for next interval
         init_time_int = init_time_int + test_interval*60*1000
         left = bisect.bisect_left(timestamps, init_time_int, lo=left, hi=mid)
